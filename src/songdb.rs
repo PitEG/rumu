@@ -110,7 +110,9 @@ pub struct SongDB {
     connection: sqlite::Connection,
 }
 
+// Song database
 impl SongDB {
+    // add a song to the database
     pub fn add(&self, song: Song) {
         // insert into song relation
         let mut statement = self.connection.prepare("insert into song values (:title,:album,:tracknum,:artist,:genre,:year,:hash)").unwrap();
@@ -124,7 +126,29 @@ impl SongDB {
         let _ = statement.next(); // handle error later
 
         // insert into lyrics relation
+        let mut statement = self.connection.prepare("insert into lyrics values (:title,:album,:lyrics)").unwrap();
+        statement.bind_by_name(":title", &song.title[..]).unwrap();
+        statement.bind_by_name(":album", &song.album[..]).unwrap();
+        statement.bind_by_name(":lyrics", &song.lyrics[..]).unwrap();
+        let _ = statement.next(); // handle error later
          
+        return;
+    }
+
+    #[allow(dead_code)]
+    pub fn remove(&self, title: &str, album: &str) {
+        // remove from song relation
+        let mut statement = self.connection.prepare("delete from song where title = :title and album = :album").unwrap();
+        statement.bind_by_name(":title", &title[..]).unwrap();
+        statement.bind_by_name(":album", &album[..]).unwrap();
+        let _ = statement.next(); // handle error later
+
+        // remove from lyrics relation
+        let mut statement = self.connection.prepare("delete from lyrics where title = :title and album = :album").unwrap();
+        statement.bind_by_name(":title", &title[..]).unwrap();
+        statement.bind_by_name(":album", &album[..]).unwrap();
+        let _ = statement.next(); // handle error later
+
         return;
     }
 
@@ -140,6 +164,7 @@ impl SongDB {
     }
 }
 
+// Open a song database file
 pub fn open(db_path: &str) -> Result<SongDB,sqlite::Error> {
     let songdb = SongDB{
         database_path: String::from(db_path),

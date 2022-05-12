@@ -1,0 +1,8 @@
+- Launch
+- Check if every file in database still exists (exists in the file system)
+  - Delete any entries that don't exist
+- Allow user to use the app now
+- Concurrently, look through the specified music folders
+  - Check for new songs
+  - Update files if they were changed (this is kind of expensive)
+
