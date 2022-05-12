@@ -1,0 +1,25 @@
+# Idea 1
+There should be a single database that has all the songs. So, there isn't really a need
+to maintain foreign key restraints, but I should still declare a key I think
+
+To make the minimal key, I think all I need is the song title, album, and artist
+Since there could be multiple artists, I want to be able to include them still
+
+Song(Title -> Key, Album -> Key, Artist -> Key, TrackNumber, Genre, Year)
+
+# Idea 2
+
+I could have multiple tables when I expect songs to have multiple instances of a tag.
+For example, a song could have multiple artists or multiple genres.
+So instead I could make use of foreign keys and do something like this:
+
+Hash used for versioning. If a was updated since last checked, the hash should be different.
+
+Song(Title (K), Album (K), TrackNumber, Year, Hash)
+
+Artist(Title (FK), Album (FK), Artist)
+
+Genre(Title (FK), Album(FK), Genre)
+
+Lyrics(Title (FK), Album(FK), Lyrics)
+
