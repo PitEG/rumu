@@ -1,4 +1,5 @@
 mod songdb;
+mod player;
 
 fn main() {
     println!("Hello, I'm making rumu!");
@@ -22,4 +23,7 @@ fn main() {
 
     db.remove(&song2.title.clone(), &song2.album.clone());
     db.update("Requiem", "Guilty Gear Strive OST Vocals", &song1);
+
+    let player = player::create(db);
+    let _ = player.start();
 }

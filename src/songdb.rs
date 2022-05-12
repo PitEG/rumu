@@ -1,4 +1,3 @@
-// use std::path::Path;
 use std::process::Command;
 use std::io;
 use std::io::prelude::*;
@@ -154,8 +153,8 @@ impl SongDB {
     pub fn update(&self, title: &str, album: &str, song: &Song) {
         // insert into song relation
         let mut statement = self.connection.prepare("update song set TrackNumber = :tracknum, Artist = :artist, Genre = :genre, Year = :year, Version = :hash where Title = :title and Album = :album").unwrap();
-        statement.bind_by_name(":title", &song.title[..]).unwrap();
-        statement.bind_by_name(":album", &song.album[..]).unwrap();
+        statement.bind_by_name(":title", &title[..]).unwrap();
+        statement.bind_by_name(":album", &album[..]).unwrap();
         statement.bind_by_name(":tracknum", song.track_num).unwrap();
         statement.bind_by_name(":artist", &song.artist[..]).unwrap();
         statement.bind_by_name(":genre", &song.genre[..]).unwrap();
@@ -165,8 +164,8 @@ impl SongDB {
 
         // insert into lyrics relation
         let mut statement = self.connection.prepare("update lyrics set Lyrics = :lyrics where Title = :title and Album = :album").unwrap();
-        statement.bind_by_name(":title", &song.title[..]).unwrap();
-        statement.bind_by_name(":album", &song.album[..]).unwrap();
+        statement.bind_by_name(":title", &title[..]).unwrap();
+        statement.bind_by_name(":album", &album[..]).unwrap();
         statement.bind_by_name(":lyrics", &song.lyrics[..]).unwrap();
         let _ = statement.next(); // handle error later
          
