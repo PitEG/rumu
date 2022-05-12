@@ -113,7 +113,7 @@ pub struct SongDB {
 // Song database
 impl SongDB {
     // add a song to the database
-    pub fn add(&self, song: Song) {
+    pub fn add(&self, song: &Song) {
         // insert into song relation
         let mut statement = self.connection.prepare("insert into song values (:title,:album,:tracknum,:artist,:genre,:year,:hash)").unwrap();
         statement.bind_by_name(":title", &song.title[..]).unwrap();
@@ -135,7 +135,6 @@ impl SongDB {
         return;
     }
 
-    #[allow(dead_code)]
     pub fn remove(&self, title: &str, album: &str) {
         // remove from song relation
         let mut statement = self.connection.prepare("delete from song where title = :title and album = :album").unwrap();
@@ -152,11 +151,27 @@ impl SongDB {
         return;
     }
 
-    /*
-    pub fn update(&self, title: &str, album: &str, song: Song) {
+    pub fn update(&self, title: &str, album: &str, song: &Song) {
+        // insert into song relation
+        let mut statement = self.connection.prepare("update song set TrackNumber = :tracknum, Artist = :artist, Genre = :genre, Year = :year, Version = :hash where Title = :title and Album = :album").unwrap();
+        statement.bind_by_name(":title", &song.title[..]).unwrap();
+        statement.bind_by_name(":album", &song.album[..]).unwrap();
+        statement.bind_by_name(":tracknum", song.track_num).unwrap();
+        statement.bind_by_name(":artist", &song.artist[..]).unwrap();
+        statement.bind_by_name(":genre", &song.genre[..]).unwrap();
+        statement.bind_by_name(":year", song.year).unwrap();
+        statement.bind_by_name(":hash", &song.hash[..]).unwrap();
+        let _ = statement.next(); // handle error later
+
+        // insert into lyrics relation
+        let mut statement = self.connection.prepare("update lyrics set Lyrics = :lyrics where Title = :title and Album = :album").unwrap();
+        statement.bind_by_name(":title", &song.title[..]).unwrap();
+        statement.bind_by_name(":album", &song.album[..]).unwrap();
+        statement.bind_by_name(":lyrics", &song.lyrics[..]).unwrap();
+        let _ = statement.next(); // handle error later
+         
         return;
     }
-    */
 
     #[allow(dead_code)]
     pub fn search(&self) {
