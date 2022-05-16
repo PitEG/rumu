@@ -1,10 +1,11 @@
 use std::process::Command;
 use std::io;
 use std::io::prelude::*;
-use std::fs::File;
+use std::fs::{File};
 use md5;
 use json;
 use sqlite;
+use walkdir::WalkDir;
 
 pub struct Song {
     pub title: String,
@@ -60,9 +61,11 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
         ])
         .output()
         .expect("failed to run ffprobe");
-    let _ = String::from_utf8_lossy(&command.stdout);
-    let _ = String::from_utf8_lossy(&command.stderr);
+    // let _ = String::from_utf8_lossy(&command.stderr);
     let output = String::from_utf8_lossy(&command.stdout);
+    if !command.status.success() {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "cannot ffprobe file"));
+    }
 
     // parsing output
     let parsed = json::parse(&output).unwrap();
@@ -71,22 +74,36 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
     let stream = &parsed["streams"][0];
     // println!("tags:\n{}", &tags);
     
-    let title = String::from(tags["TITLE"] .as_str().unwrap());
-    let album = String::from(tags["ALBUM"] .as_str().unwrap());
-    let artist = String::from(tags["ARTIST"].as_str().unwrap());
-    let genre = String::from(tags["GENRE"] .as_str().unwrap());
-    let lyrics = String::from(tags["LYRICS"] .as_str().unwrap());
+    if stream["codec_name"] != "vorbis" {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "not a vorbis file"));
+    }
+    
+    let title = match tags["TITLE"].as_str() {
+        Some(s) => String::from(s), None => String::from("unknown album")
+    };
+    let album = match tags["ALBUM"].as_str() {
+        Some(s) => String::from(s), None => String::from("unknown album")
+    };
+    let artist = match tags["ARTIST"].as_str() {
+        Some(s) => String::from(s), None => String::from("unknown artist"),
+    };
+    let genre = match tags["GENRE"] .as_str() {
+        Some(s) => String::from(s), None => String::from("unknown genre")
+    };
+    let lyrics = match tags["LYRICS"] .as_str() {
+        Some(s) => String::from(s), None => String::from("no lyrics")
+    };
     let duration = match String::from(stream["duration"].as_str().unwrap()).parse::<f64>() {
         Ok(i) => i,
         Err(_) => -1.0,
     };
-    let year = match String::from(tags["DATE"].as_str().unwrap()).parse::<i64>() {
-        Ok(i) => i,
-        Err(_) => -1,
+    let year = match tags["DATE"].as_str() {
+        Some(s) => match s.parse::<i64>() { Ok(i) => i, Err(_) => -1 },
+        None => -1
     };
-    let track_num = match String::from(tags["track"].as_str().unwrap()).parse::<i64>() {
-        Ok(i) => i,
-        Err(_) => -1,
+    let track_num = match tags["track"].as_str() {
+        Some(s) => match s.parse::<i64>() { Ok(i) => i, Err(_) => -1 },
+        None => -1
     };
     let song = Song{
         title,
@@ -102,6 +119,25 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
     };
 
     return Ok(song);
+}
+
+pub fn get_meta_dir(dir: &str) -> Vec<Song> {
+    // walk through every file in this directory and its subdirectories
+    let mut songs : Vec<Song> = vec![];
+    for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
+        // println!("ffprobing: {}",entry.path().display());
+        // get_meta() is an expensive function
+        let meta : Song = match get_meta(entry.path().to_str().unwrap()) {
+            Ok(m) => {
+                println!("successful!");
+                m
+            },
+            Err(_) => continue, 
+        };
+        songs.push(meta);
+    }
+
+    return songs;
 }
 
 pub struct SongDB {

@@ -1,8 +1,10 @@
 - Launch
 - Check if every file in database still exists (exists in the file system)
   - Delete any entries that don't exist
-- Allow user to use the app now
+- Allow user to use the app now (this prevents them from seeing songs that don't exist in the fs)
 - Concurrently, look through the specified music folders
-  - Check for new songs
+  - Check for new songs (files that succeed being ffprobed)
+    - add any new ones in
   - Update files if they were changed (this is kind of expensive)
+    - probably should only be done when asked and should be limited to be done per album
 
