@@ -1,7 +1,7 @@
 use std::process::Command;
 use std::{io,fs};
 use std::io::prelude::*;
-use std::fs::File;
+use std::fs::{File};
 use md5;
 use json;
 use sqlite;
@@ -150,108 +150,91 @@ pub struct SongDB {
 // Song database
 impl SongDB {
     // add a song to the database
-    pub fn add(&self, song: &Song) -> Result<(),sqlite::Error>{
+    pub fn add(&self, song: &Song) {
         // insert into song relation
-        let mut statement = self.connection.prepare("insert into song values (:title,:album,:tracknum,:artist,:genre,:year,:path,:hash)")?;
-        statement.bind_by_name(":title", &song.title[..])?;
-        statement.bind_by_name(":album", &song.album[..])?;
-        statement.bind_by_name(":tracknum", song.track_num)?;
-        statement.bind_by_name(":artist", &song.artist[..])?;
-        statement.bind_by_name(":genre", &song.genre[..])?;
-        statement.bind_by_name(":year", song.year)?;
-        statement.bind_by_name(":hash", &song.hash[..])?;
-        statement.bind_by_name(":path", &song.path[..])?;
+        let mut statement = self.connection.prepare("insert into song values (:title,:album,:tracknum,:artist,:genre,:year,:path,:hash)").unwrap();
+        statement.bind_by_name(":title", &song.title[..]).unwrap();
+        statement.bind_by_name(":album", &song.album[..]).unwrap();
+        statement.bind_by_name(":tracknum", song.track_num).unwrap();
+        statement.bind_by_name(":artist", &song.artist[..]).unwrap();
+        statement.bind_by_name(":genre", &song.genre[..]).unwrap();
+        statement.bind_by_name(":year", song.year).unwrap();
+        statement.bind_by_name(":hash", &song.hash[..]).unwrap();
+        statement.bind_by_name(":path", &song.path[..]).unwrap();
         let _ = statement.next(); // handle error later
 
         // insert into lyrics relation
-        let mut statement = self.connection.prepare("insert into lyrics values (:title,:album,:lyrics)")?;
-        statement.bind_by_name(":title", &song.title[..])?;
-        statement.bind_by_name(":album", &song.album[..])?;
-        statement.bind_by_name(":lyrics", &song.lyrics[..])?;
+        let mut statement = self.connection.prepare("insert into lyrics values (:title,:album,:lyrics)").unwrap();
+        statement.bind_by_name(":title", &song.title[..]).unwrap();
+        statement.bind_by_name(":album", &song.album[..]).unwrap();
+        statement.bind_by_name(":lyrics", &song.lyrics[..]).unwrap();
         let _ = statement.next(); // handle error later
          
-        return Ok(());
+        return;
     }
 
-    pub fn remove(&self, title: &str, album: &str) -> Result<(),sqlite::Error> {
+    pub fn remove(&self, title: &str, album: &str) {
         // remove from song relation
-        let mut statement = self.connection.prepare("delete from song where title = :title and album = :album")?;
-        statement.bind_by_name(":title", &title[..])?;
-        statement.bind_by_name(":album", &album[..])?;
+        let mut statement = self.connection.prepare("delete from song where title = :title and album = :album").unwrap();
+        statement.bind_by_name(":title", &title[..]).unwrap();
+        statement.bind_by_name(":album", &album[..]).unwrap();
         let _ = statement.next(); // handle error later
 
         // remove from lyrics relation
-        let mut statement = self.connection.prepare("delete from lyrics where title = :title and album = :album")?;
-        statement.bind_by_name(":title", &title[..])?;
-        statement.bind_by_name(":album", &album[..])?;
+        let mut statement = self.connection.prepare("delete from lyrics where title = :title and album = :album").unwrap();
+        statement.bind_by_name(":title", &title[..]).unwrap();
+        statement.bind_by_name(":album", &album[..]).unwrap();
         let _ = statement.next(); // handle error later
 
-        return Ok(());
+        return;
     }
 
-    pub fn update(&self, title: &str, album: &str, song: &Song) -> Result<(),sqlite::Error>{
+    pub fn update(&self, title: &str, album: &str, song: &Song) {
         // insert into song relation
-        let mut statement = self.connection.prepare("update song set TrackNumber = :tracknum, Artist = :artist, Genre = :genre, Year = :year, Path = :path, Version = :hash where Title = :title and Album = :album")?;
-        statement.bind_by_name(":title", &title[..])?;
-        statement.bind_by_name(":album", &album[..])?;
-        statement.bind_by_name(":tracknum", song.track_num)?;
-        statement.bind_by_name(":artist", &song.artist[..])?;
-        statement.bind_by_name(":genre", &song.genre[..])?;
-        statement.bind_by_name(":year", song.year)?;
-        statement.bind_by_name(":hash", &song.hash[..])?;
-        statement.bind_by_name(":path", &song.path[..])?;
+        let mut statement = self.connection.prepare("update song set TrackNumber = :tracknum, Artist = :artist, Genre = :genre, Year = :year, Path = :path, Version = :hash where Title = :title and Album = :album").unwrap();
+        statement.bind_by_name(":title", &title[..]).unwrap();
+        statement.bind_by_name(":album", &album[..]).unwrap();
+        statement.bind_by_name(":tracknum", song.track_num).unwrap();
+        statement.bind_by_name(":artist", &song.artist[..]).unwrap();
+        statement.bind_by_name(":genre", &song.genre[..]).unwrap();
+        statement.bind_by_name(":year", song.year).unwrap();
+        statement.bind_by_name(":hash", &song.hash[..]).unwrap();
+        statement.bind_by_name(":path", &song.path[..]).unwrap();
         let _ = statement.next(); // handle error later
 
         // insert into lyrics relation
-        let mut statement = self.connection.prepare("update lyrics set Lyrics = :lyrics where Title = :title and Album = :album")?;
-        statement.bind_by_name(":title", &title[..])?;
-        statement.bind_by_name(":album", &album[..])?;
-        statement.bind_by_name(":lyrics", &song.lyrics[..])?;
+        let mut statement = self.connection.prepare("update lyrics set Lyrics = :lyrics where Title = :title and Album = :album").unwrap();
+        statement.bind_by_name(":title", &title[..]).unwrap();
+        statement.bind_by_name(":album", &album[..]).unwrap();
+        statement.bind_by_name(":lyrics", &song.lyrics[..]).unwrap();
         let _ = statement.next(); // handle error later
          
-        return Ok(());
+        return;
     }
 
     // go through the db and remove entries that don't exist in the fs
     // does not read if it's actually the same file
-    pub fn prune_db(&self) -> Result<(),sqlite::Error> {
+    pub fn prune_db(&self) -> std::io::Result<(),sqlite::Error> {
         // get a list paths that should have a song
-        let mut songs : Vec<(String,String,String)> = vec![]; // Title,Album,Path
-        
-        // sql query
-        let mut statement = self.connection.prepare("select Title,Album,Path from song")?;
-        while let sqlite::State::Row = statement.next()? {
-           let title = statement.read::<String>(0)?; 
-           let album = statement.read::<String>(1)?; 
-           let path = statement.read::<String>(2)?; 
-           songs.push((title,album,path));
-        }
+        let mut paths : Vec<String> = vec![];
+        self.connection.iterate("select Path from song", |pairs| {
+            for &(_,value) in pairs.iter() {
+                let path = match value {
+                    Some(v) => v,
+                    None => continue
+                };
+                paths.push(String::from(path));
+            }
+            true
+        })
+        .unwrap();
 
-        // check to see if each song path still exists
-        let mut missing : Vec<(String,String)> = vec![];
-        for song in songs {
-            match fs::metadata(song.2) {
+        // check to see if each one still exists
+        for path in paths {
+            match fs::metadata(path) {
                 Ok(_) => println!("it's there"),
-                Err(_) => {
-                    missing.push((song.0,song.1));
-                    println!("not there");
-                }
+                Err(_) => println!("not there")
             };
-        }
-
-        // remove any that don't exist
-        let mut statement = self.connection.prepare(
-            "
-            delete from song where title = :t1 and album = :a1
-            "
-            )?;
-        println!("{}",missing.len());
-        for song in missing {
-            statement.bind_by_name(":t1", &song.0[..])?;
-            statement.bind_by_name(":a1", &song.1[..])?;
-            // statement.bind_by_name(":t2", &song.0[..])?;
-            // statement.bind_by_name(":a2", &song.1[..])?;
-            statement.next()?;
         }
 
         return Ok(());
