@@ -3,6 +3,7 @@ use std::{io,fs};
 use std::io::prelude::*;
 use std::fs::File;
 use md5;
+use sha1::{Sha1,Digest};
 use json;
 use sqlite;
 use walkdir::WalkDir;
@@ -36,15 +37,16 @@ fn song_hash(filepath: &str) -> Result<String, io::Error> {
     const BUFFER_SIZE: usize = 8192;
     let mut file = File::open(filepath)?;
     let mut buffer = [0; BUFFER_SIZE];
-    let mut context = md5::Context::new();
+    // let mut context = md5::Context::new();
+    let mut context = Sha1::new();
     loop {
         // let count = reader.read(&mut buffer[..])?;
         let count = file.read(&mut buffer[..])?;
-        context.consume(&buffer[..count]);
+        context.update(&buffer[..count]);
         if count == 0 { break };
     }
-    context.consume(&filepath[..]);
-    let hash = context.compute();
+    context.update(&filepath[..]);
+    let hash = context.finalize();
     let hash_string = format!("{:x}",hash);
     return Ok(hash_string);
 }
@@ -239,19 +241,9 @@ impl SongDB {
             };
         }
 
-        // remove any that don't exist
-        let mut statement = self.connection.prepare(
-            "
-            delete from song where title = :t1 and album = :a1
-            "
-            )?;
         println!("{}",missing.len());
         for song in missing {
-            statement.bind_by_name(":t1", &song.0[..])?;
-            statement.bind_by_name(":a1", &song.1[..])?;
-            // statement.bind_by_name(":t2", &song.0[..])?;
-            // statement.bind_by_name(":a2", &song.1[..])?;
-            statement.next()?;
+            self.remove(&song.0[..], &song.1[..])?;
         }
 
         return Ok(());

@@ -11,13 +11,11 @@ fn main() {
         },
     };
     
-    /*
     let songs = songdb::get_meta_dir("/home/enrique/Music/big");
     println!("{}", songs.len());
     for song in songs {
         let _ = db.add(&song);
     }
-    */
 
     match db.prune_db() {
         Ok(_) => (),
