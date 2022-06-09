@@ -2,7 +2,6 @@ use std::process::Command;
 use std::{io,fs};
 use std::io::prelude::*;
 use std::fs::File;
-use md5;
 use sha1::{Sha1,Digest};
 use json;
 use sqlite;
@@ -19,6 +18,7 @@ pub struct Song {
     pub path: String,
     pub lyrics: String,
     pub hash: String,
+    pub size: i64,
 }
 
 impl Song {
@@ -37,7 +37,6 @@ fn song_hash(filepath: &str) -> Result<String, io::Error> {
     const BUFFER_SIZE: usize = 8192;
     let mut file = File::open(filepath)?;
     let mut buffer = [0; BUFFER_SIZE];
-    // let mut context = md5::Context::new();
     let mut context = Sha1::new();
     loop {
         // let count = reader.read(&mut buffer[..])?;
@@ -109,6 +108,7 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
         Some(s) => match s.parse::<i64>() { Ok(i) => i, Err(_) => -1 },
         None => -1
     };
+    let size = fs::metadata(filepath)?.len() as i64;
     let song = Song{
         title,
         album,
@@ -120,6 +120,7 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
         path: String::from(filepath),
         lyrics,
         hash: song_hash(&filepath)?,
+        size,
     };
 
     return Ok(song);
@@ -154,7 +155,7 @@ impl SongDB {
     // add a song to the database
     pub fn add(&self, song: &Song) -> Result<(),sqlite::Error>{
         // insert into song relation
-        let mut statement = self.connection.prepare("insert into song values (:title,:album,:tracknum,:artist,:genre,:year,:path,:hash)")?;
+        let mut statement = self.connection.prepare("insert into song values (:title,:album,:tracknum,:artist,:genre,:year,:path,:hash,:size)")?;
         statement.bind_by_name(":title", &song.title[..])?;
         statement.bind_by_name(":album", &song.album[..])?;
         statement.bind_by_name(":tracknum", song.track_num)?;
@@ -163,6 +164,7 @@ impl SongDB {
         statement.bind_by_name(":year", song.year)?;
         statement.bind_by_name(":hash", &song.hash[..])?;
         statement.bind_by_name(":path", &song.path[..])?;
+        statement.bind_by_name(":size", song.size)?;
         let _ = statement.next(); // handle error later
 
         // insert into lyrics relation
@@ -193,7 +195,7 @@ impl SongDB {
 
     pub fn update(&self, title: &str, album: &str, song: &Song) -> Result<(),sqlite::Error>{
         // insert into song relation
-        let mut statement = self.connection.prepare("update song set TrackNumber = :tracknum, Artist = :artist, Genre = :genre, Year = :year, Path = :path, Version = :hash where Title = :title and Album = :album")?;
+        let mut statement = self.connection.prepare("update song set TrackNumber = :tracknum, Artist = :artist, Genre = :genre, Year = :year, Path = :path, Version = :hash, Size = :size where Title = :title and Album = :album")?;
         statement.bind_by_name(":title", &title[..])?;
         statement.bind_by_name(":album", &album[..])?;
         statement.bind_by_name(":tracknum", song.track_num)?;
@@ -202,6 +204,7 @@ impl SongDB {
         statement.bind_by_name(":year", song.year)?;
         statement.bind_by_name(":hash", &song.hash[..])?;
         statement.bind_by_name(":path", &song.path[..])?;
+        statement.bind_by_name(":size", song.size)?;
         let _ = statement.next(); // handle error later
 
         // insert into lyrics relation
@@ -263,7 +266,7 @@ pub fn open(db_path: &str) -> Result<SongDB,sqlite::Error> {
     };
     songdb.connection.execute(
         "
-        create table if not exists song (Title TEXT, Album TEXT, TrackNumber INTEGER, Artist TEXT, Genre TEXT, Year INTEGER, Path TEXT, Version CHAR(16),
+        create table if not exists song (Title TEXT, Album TEXT, TrackNumber INTEGER, Artist TEXT, Genre TEXT, Year INTEGER, Path TEXT, Version CHAR(16), Size INTEGER,
             CONSTRAINT PK_Song PRIMARY KEY (Title, Album));
         create table if not exists lyrics (Title TEXT NOT NULL, Album TEXT NOT NULL, Lyrics TEXT,
             FOREIGN KEY(Title) REFERENCES songs(Title),

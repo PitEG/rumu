@@ -6,5 +6,6 @@
   - Check for new songs (files that succeed being ffprobed)
     - add any new ones in
   - Update files if they were changed (this is kind of expensive)
+    - a quick way to check if file changed is by just looking at the size of the file
     - probably should only be done when asked and should be limited to be done per album
 
