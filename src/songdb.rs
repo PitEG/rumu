@@ -252,6 +252,44 @@ impl SongDB {
         return Ok(());
     }
 
+    pub fn get_meta(&self, title: &str, album: &str) -> Option<Song> {
+        let mut statement = self.connection.prepare("select * from song where Title = :title and Album = :album").ok()?;
+        statement.bind_by_name(":title", &title[..]).ok()?;
+        statement.bind_by_name(":album", &album[..]).ok()?;
+
+        while let sqlite::State::Row = statement.next().ok()? {
+           let title = statement.read::<String>(0).ok()?; 
+           let album = statement.read::<String>(1).ok()?; 
+           let track_num = statement.read::<i64>(2).ok()?; 
+           let artist = statement.read::<String>(3).ok()?; 
+           let genre = statement.read::<String>(4).ok()?; 
+           let year = statement.read::<i64>(5).ok()?; 
+           let path = statement.read::<String>(6).ok()?; 
+           let hash = statement.read::<String>(7).ok()?; 
+           let size = statement.read::<i64>(8).ok()?; 
+           let song = Song{
+               title,
+               album,
+               artist,
+               genre,
+               year, 
+               track_num,
+               duration: 0., // currently not saved
+               path,
+               lyrics: String::from("placeholder"), // currently not querying in this function 
+               hash,
+               size,
+           };
+           return Some(song);
+        }
+        return None;
+    }
+
+    // checks if file of song in databse has changed
+    pub fn check_change(&self, title: &str, album: &str) -> bool {
+        return false
+    }
+
     #[allow(dead_code)]
     pub fn search(&self) {
         return;
