@@ -25,10 +25,6 @@ impl Song {
     pub fn to_string(&self) -> String {
         return String::from(format!("{} - {} {}, {}; {}s", &self.track_num, &self.title, &self.album,&self.year,&self.duration));
     }
-
-    pub fn path(&self) -> String {
-        return String::clone(&self.path);
-    }
 }
 
 // This is an expensive function. It takes a while to run.
@@ -252,6 +248,12 @@ impl SongDB {
         return Ok(());
     }
 
+    // look through directory recursively and add song files that don't exist in db
+    pub fn add_new_songs_dir(&self, dir: &str) {
+        for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
+        }
+    }
+
     pub fn get_meta(&self, title: &str, album: &str) -> Option<Song> {
         let mut statement = self.connection.prepare("select * from song where Title = :title and Album = :album").ok()?;
         statement.bind_by_name(":title", &title[..]).ok()?;
@@ -286,8 +288,32 @@ impl SongDB {
     }
 
     // checks if file of song in databse has changed
-    pub fn check_change(&self, title: &str, album: &str) -> bool {
-        return false
+    // returns true if the file size is inconsistent with db's entry of the song
+    // returns true if the sha1 checksums are different
+    // false if checksums are the same and the filesize is the same
+    pub fn check_change(&self, title: &str, album: &str) -> Option<bool> {
+        let mut statement = self.connection.prepare("select Path,Size,Version from song where Title = :title and Album = :album").ok()?;
+        statement.bind_by_name(":title", &title[..]).ok()?;
+        statement.bind_by_name(":album", &album[..]).ok()?;
+        statement.next().ok()?;
+
+        let path = statement.read::<String>(0).ok()?;
+        let size = statement.read::<i64>(1).ok()?;
+        let hash = statement.read::<String>(2).ok()?;
+
+        // check if sizes are the same
+        let actual_size = fs::metadata(&path[..]).ok()?.len();
+        if size != (actual_size as i64) {
+            return Some(false);
+        }
+
+        // check if checksum is the same
+        if song_hash(&path[..]).ok()? != hash {
+            return Some(false);
+        }
+        
+        // if size are the same and checksum is the same, just assume it's the same
+        return Some(true)
     }
 
     #[allow(dead_code)]
