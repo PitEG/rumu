@@ -25,6 +25,11 @@ impl Song {
     pub fn to_string(&self) -> String {
         return String::from(format!("{} - {} {}, {}; {}s", &self.track_num, &self.title, &self.album,&self.year,&self.duration));
     }
+
+    pub fn hash(&mut self) -> Result<(), io::Error> {
+        self.hash = song_hash(&self.path)?;
+        return Ok(());
+    }
 }
 
 // This is an expensive function. It takes a while to run.
@@ -115,7 +120,8 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
         duration,
         path: String::from(filepath),
         lyrics,
-        hash: song_hash(&filepath)?,
+        // hash: song_hash(&filepath)?, // expensive, do it only when needed 
+        hash: String::from(""),
         size,
     };
 
@@ -158,7 +164,10 @@ impl SongDB {
         statement.bind_by_name(":artist", &song.artist[..])?;
         statement.bind_by_name(":genre", &song.genre[..])?;
         statement.bind_by_name(":year", song.year)?;
-        statement.bind_by_name(":hash", &song.hash[..])?;
+        // statement.bind_by_name(":hash", &song.hash[..])?;
+        let hash = 
+            song_hash(&song.path[..]).ok().unwrap(); // not safe
+        statement.bind_by_name(":hash", &hash[..])?;
         statement.bind_by_name(":path", &song.path[..])?;
         statement.bind_by_name(":size", song.size)?;
         let _ = statement.next(); // handle error later
@@ -249,10 +258,12 @@ impl SongDB {
     }
 
     // look through directory recursively and add song files that don't exist in db
+    /*
     pub fn add_new_songs_dir(&self, dir: &str) {
         for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
         }
     }
+    */
 
     pub fn get_meta(&self, title: &str, album: &str) -> Option<Song> {
         let mut statement = self.connection.prepare("select * from song where Title = :title and Album = :album").ok()?;
@@ -288,10 +299,12 @@ impl SongDB {
     }
 
     // checks if file of song in databse has changed
+    // You can choose what to check (file size or checksum). If both are checked, size is checked
+    // first.
     // returns true if the file size is inconsistent with db's entry of the song
     // returns true if the sha1 checksums are different
     // false if checksums are the same and the filesize is the same
-    pub fn check_change(&self, title: &str, album: &str) -> Option<bool> {
+    pub fn check_change(&self, title: &str, album: &str, check_size: bool, check_hash: bool) -> Option<bool> {
         let mut statement = self.connection.prepare("select Path,Size,Version from song where Title = :title and Album = :album").ok()?;
         statement.bind_by_name(":title", &title[..]).ok()?;
         statement.bind_by_name(":album", &album[..]).ok()?;
@@ -302,14 +315,18 @@ impl SongDB {
         let hash = statement.read::<String>(2).ok()?;
 
         // check if sizes are the same
-        let actual_size = fs::metadata(&path[..]).ok()?.len();
-        if size != (actual_size as i64) {
-            return Some(false);
+        if check_size {
+            let actual_size = fs::metadata(&path[..]).ok()?.len();
+            if size != (actual_size as i64) {
+                return Some(false);
+            }
         }
 
         // check if checksum is the same
-        if song_hash(&path[..]).ok()? != hash {
-            return Some(false);
+        if check_hash {
+            if song_hash(&path[..]).ok()? != hash {
+                return Some(false);
+            }
         }
         
         // if size are the same and checksum is the same, just assume it's the same

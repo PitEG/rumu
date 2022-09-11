@@ -1,3 +1,5 @@
 /target
+callgrind*
 test.db
+test.db.bak
 makefile
