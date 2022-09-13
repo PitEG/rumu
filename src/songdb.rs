@@ -73,11 +73,9 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
     let tags = &parsed["media"]["track"][0];
     // let stream = &parsed["streams"][0];
     
-    /*
-    if stream["codec_name"] != "vorbis" {
+    if tags["Format"] != "Ogg" {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "not a vorbis file"));
     }
-    */
     
     let title = match tags["Title"].as_str() {
         Some(s) => String::from(s), None => String::from("unknown album")

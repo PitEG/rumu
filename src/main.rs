@@ -29,10 +29,12 @@ fn main() {
     }
 
     // look through database and remove any songs that don't exist in fs
+    /*
     match db.prune_db() {
         Ok(_) => (),
         Err(e) => println!("{}",e),
     }; 
+    */
 
     /*
     let player = player::create(db);
