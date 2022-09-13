@@ -55,12 +55,9 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
     // let comm = Command::new("ls").args([".","src"]).output().expect("lala");
     // println!("{}",String::from_utf8_lossy(&comm.stdout));
     // ffprobe -loglevel 0 -print_format json -show_format -show_streams [filepath]
-    let command = Command::new("ffprobe")
+    let command = Command::new("mediainfo")
         .args([
-            "-loglevel","0",
-            "-print_format","json",
-            "-show_format",
-            "-show_streams",
+            "--Output=JSON",
             &filepath,
         ])
         .output()
@@ -73,39 +70,39 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
 
     // parsing output
     let parsed = json::parse(&output).unwrap();
-    // println!("{}",parsed);
-    let tags = &parsed["streams"][0]["tags"];
-    let stream = &parsed["streams"][0];
-    // println!("tags:\n{}", &tags);
+    let tags = &parsed["media"]["track"][0];
+    // let stream = &parsed["streams"][0];
     
+    /*
     if stream["codec_name"] != "vorbis" {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "not a vorbis file"));
     }
+    */
     
-    let title = match tags["TITLE"].as_str() {
+    let title = match tags["Title"].as_str() {
         Some(s) => String::from(s), None => String::from("unknown album")
     };
-    let album = match tags["ALBUM"].as_str() {
+    let album = match tags["Album"].as_str() {
         Some(s) => String::from(s), None => String::from("unknown album")
     };
-    let artist = match tags["ARTIST"].as_str() {
+    let artist = match tags["Performer"].as_str() {
         Some(s) => String::from(s), None => String::from("unknown artist"),
     };
-    let genre = match tags["GENRE"] .as_str() {
+    let genre = match tags["Genre"] .as_str() {
         Some(s) => String::from(s), None => String::from("unknown genre")
     };
-    let lyrics = match tags["LYRICS"] .as_str() {
+    let lyrics = match tags["Lyrics"] .as_str() {
         Some(s) => String::from(s), None => String::from("no lyrics")
     };
-    let duration = match String::from(stream["duration"].as_str().unwrap()).parse::<f64>() {
+    let duration = match String::from(tags["Duration"].as_str().unwrap_or("0")).parse::<f64>() {
         Ok(i) => i,
         Err(_) => -1.0,
     };
-    let year = match tags["DATE"].as_str() {
+    let year = match tags["Recorded_Date"].as_str() {
         Some(s) => match s.parse::<i64>() { Ok(i) => i, Err(_) => -1 },
         None => -1
     };
-    let track_num = match tags["track"].as_str() {
+    let track_num = match tags["Track_Position"].as_str() {
         Some(s) => match s.parse::<i64>() { Ok(i) => i, Err(_) => -1 },
         None => -1
     };
@@ -165,8 +162,7 @@ impl SongDB {
         statement.bind_by_name(":genre", &song.genre[..])?;
         statement.bind_by_name(":year", song.year)?;
         // statement.bind_by_name(":hash", &song.hash[..])?;
-        let hash = 
-            song_hash(&song.path[..]).ok().unwrap(); // not safe
+        let hash = song_hash(&song.path[..]).ok().unwrap_or(String::from("")); // not safe
         statement.bind_by_name(":hash", &hash[..])?;
         statement.bind_by_name(":path", &song.path[..])?;
         statement.bind_by_name(":size", song.size)?;

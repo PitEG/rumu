@@ -34,6 +34,8 @@ fn main() {
         Err(e) => println!("{}",e),
     }; 
 
+    /*
     let player = player::create(db);
     let _ = player.start();
+    */
 }
