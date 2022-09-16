@@ -61,7 +61,7 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
             &filepath,
         ])
         .output()
-        .expect("failed to run ffprobe");
+        .expect("failed to run mediainfo");
     // let _ = String::from_utf8_lossy(&command.stderr);
     let output = String::from_utf8_lossy(&command.stdout);
     if !command.status.success() {

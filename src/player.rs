@@ -80,7 +80,7 @@ impl Player {
                 // Event::Paste(data) => println!("{:?}", data),
                 _ => {}, // else do nothing else
             }
-        thread::sleep(Duration::from_millis(16));
+            thread::sleep(Duration::from_millis(16));
         }
 
         // restore terminal
