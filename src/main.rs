@@ -1,11 +1,19 @@
+use std::{thread, time::Duration};
+
 mod songdb;
+mod app;
 mod player;
 
 fn main() {
     let args : Vec<String> = std::env::args().collect();
     println!("Hello, I'm making rumu!");
 
+    let mut player = player::new();
+    player.play(&args[1]);
+    thread::sleep(Duration::from_millis(5000));
+
     // open database
+    /*
     let db = match songdb::open("test.db") {
         Ok(d) => d,
         Err(_) => {
@@ -29,15 +37,13 @@ fn main() {
     }
 
     // look through database and remove any songs that don't exist in fs
-    /*
     match db.prune_db() {
         Ok(_) => (),
         Err(e) => println!("{}",e),
     }; 
-    */
 
-    /*
-    let player = player::create(db);
+
+    let player = app::create(db);
     let _ = player.start();
     */
 }
