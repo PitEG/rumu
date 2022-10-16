@@ -29,6 +29,15 @@ impl Player {
         return self.command(&mut command);
     }
 
+    pub fn wait_until_song_finished(&mut self) {
+        loop {
+            match self.backend.wait_event(1000000.0).unwrap() {
+                mpv::Event::Idle => { break },
+                _ => {println!("not end of song")},
+            }
+        }
+    }
+
     pub fn queue(&mut self, path: &str) -> Result<(),&str> {
         let mut command = ["loadfile", path, "append"];
         return self.command(&mut command);
