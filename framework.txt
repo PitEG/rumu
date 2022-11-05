@@ -1,0 +1,29 @@
+┌───────────┬───────────────────────────────────────┬────────────┐
+│Tabs       │ search bar                            │ queue      │
+│           ├───────────────────────────────────────┤            │
+│ album     │ song result list                      │ 1. song    │
+│ artist    │                                       │ 2. song    │
+│ genre     │ song - artist - album - duration      │ 3. song now│
+│  punk     │                                       │ 4. song ...│
+│  rock     │                                       │            │
+│  videogame│                                       │            │
+│           │                                       │            │
+│           │                                       │            │
+│ these can │                                       │            │
+│ expand to │                                       │            │
+│ so sub    │                                       │            │
+│ categories│                                       ├────────────┤
+│ but displ-│                                       │song info   │
+│ ays songs │                                       │            │
+│ over there│                                       │            │
+│ ----->    │                                       │            │
+│           │                                       │            │
+│           │                                       │            │
+│           │                                       │            │
+│           │                                       │            │
+├───────────┴───────────────────────────────────────┴────────────┤
+│ song info: song - artist - album                               │
+│                                                                │
+│  progress bar / time left                                      │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
