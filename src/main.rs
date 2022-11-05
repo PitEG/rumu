@@ -10,8 +10,9 @@ fn main() {
 
     let mut player = player::new();
     player.play(&args[1]);
-    // thread::sleep(Duration::from_millis(5000));
-    player.wait_until_song_finished();
+    player.is_song_finished();
+    thread::sleep(Duration::from_millis(9000));
+    player.is_song_finished();
 
     // open database
     /*

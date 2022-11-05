@@ -18,23 +18,34 @@ pub fn new() -> Player {
 }
 
 impl Player {
+
     fn command(&mut self, command : &mut [&str]) -> Result<(),&str> {
         match self.backend.command(command) {
             Ok(v) => Ok(v),
             Err(e) => {print!("{}",e); Err("queue fail")},
         }
     }
+
     pub fn play(&mut self, path: &str) -> Result<(),&str> {
         let mut command = ["loadfile", path, "append-play"];
         return self.command(&mut command);
     }
 
-    pub fn wait_until_song_finished(&mut self) {
-        loop {
-            match self.backend.wait_event(1000000.0).unwrap() {
-                mpv::Event::Idle => { break },
-                _ => {println!("not end of song")},
-            }
+    pub fn is_song_finished(&mut self) -> bool {
+        match self.backend.wait_event(0.001) {
+            Some(v) => {
+                match v {
+                    mpv::Event::Idle => { return true },
+                    _ => { 
+                        println!("not end of song");
+                        return false;
+                    },
+                }
+            },
+            None => {
+                println!("not end of song");
+                return false;
+            },
         }
     }
 
