@@ -36,16 +36,10 @@ impl Player {
             Some(v) => {
                 match v {
                     mpv::Event::Idle => { return true },
-                    _ => { 
-                        println!("not end of song");
-                        return false;
-                    },
+                    _ => { return false },
                 }
             },
-            None => {
-                println!("not end of song");
-                return false;
-            },
+            None => { return false },
         }
     }
 
