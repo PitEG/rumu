@@ -43,6 +43,7 @@ impl Player {
         }
     }
 
+    // probably not use these two
     pub fn queue(&mut self, path: &str) -> Result<(),&str> {
         let mut command = ["loadfile", path, "append"];
         return self.command(&mut command);
@@ -52,6 +53,5 @@ impl Player {
         let mut command = ["playlist-next"];
         return self.command(&mut command);
     }
-
 }
 
