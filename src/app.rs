@@ -35,16 +35,45 @@ impl App {
 
             // draw loop
             terminal.draw(|f| {
-                let chunks = Layout::default()
+                let main_chunk = Layout::default()
                     .direction(Direction::Vertical)
-                    .margin(1)
-                    .constraints(
-                        [
-                        Constraint::Percentage(10),
+                    .margin(0)
+                    .constraints([
                         Constraint::Percentage(80),
-                        Constraint::Percentage(10)
-                        ].as_ref()
-                        ).split(f.size());
+                        Constraint::Percentage(20)
+                        ].as_ref())
+                    .split(f.size());
+                let top_chunk = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .margin(0)
+                    .constraints([
+                                 Constraint::Percentage(20),
+                                 Constraint::Percentage(60),
+                                 Constraint::Percentage(20),
+                        ].as_ref())
+                    .split(main_chunk[0]);
+                let right_chunk = Layout::default()
+                    .direction(Direction::Vertical)
+                    .margin(0)
+                    .constraints([
+                                 Constraint::Percentage(60),
+                                 Constraint::Percentage(40),
+                    ].as_ref())
+                    .split(top_chunk[2]);
+                let middle_chunk = Layout::default()
+                    .direction(Direction::Vertical)
+                    .margin(0)
+                    .constraints([
+                                 Constraint::Min(3),
+                                 Constraint::Percentage(100)
+                    ].as_ref())
+                    .split(top_chunk[1]);
+                let center_top_chunk = middle_chunk[0];
+                let center_chunk = middle_chunk[1];
+                let left_chunk = top_chunk[0];
+                let right_top_chunk = right_chunk[0];
+                let right_bottom_chunk = right_chunk[1];
+                let bottom_chunk = main_chunk[1];
                 let block = Block::default()
                     .title("Block")
                     .borders(Borders::ALL);
@@ -53,9 +82,14 @@ impl App {
                     .style(Style::default().fg(Color::White))
                     .highlight_style(Style::default().add_modifier(Modifier::ITALIC))
                     .highlight_symbol(">>");
-                f.render_widget(block.clone(), chunks[0]);
-                f.render_widget(block, chunks[2]);
-                f.render_stateful_widget(list, chunks[1], &mut state);
+
+                f.render_widget(block.clone(), right_top_chunk);
+                f.render_widget(block.clone(), right_bottom_chunk);
+                f.render_widget(block.clone(), center_chunk);
+                f.render_widget(block.clone(), center_top_chunk);
+                f.render_widget(block.clone(), left_chunk);
+                f.render_widget(block, bottom_chunk);
+                // f.render_stateful_widget(list, chunks[1], &mut state);
             })?;
 
             // read input
