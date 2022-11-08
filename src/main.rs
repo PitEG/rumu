@@ -3,16 +3,19 @@ use std::{thread, time::Duration};
 mod songdb;
 mod app;
 mod player;
+mod song;
 
 fn main() {
     let args : Vec<String> = std::env::args().collect();
     println!("Hello, I'm making rumu!");
 
     let mut player = player::new();
+    /*
     player.play(&args[1]);
     player.is_song_finished();
     thread::sleep(Duration::from_millis(9000));
     player.is_song_finished();
+    */
 
     // open database
     /*

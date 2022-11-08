@@ -1,57 +1,12 @@
 use std::process::Command;
 use std::{io,fs};
-use std::io::prelude::*;
-use std::fs::File;
-use sha1::{Sha1,Digest};
 use json;
 use sqlite;
 use walkdir::WalkDir;
 
-pub struct Song {
-    pub title: String,
-    pub album: String,
-    pub artist: String,
-    pub genre: String,
-    pub year: i64,
-    pub track_num: i64,
-    pub duration: f64, // in seconds
-    pub path: String,
-    pub lyrics: String,
-    pub hash: String,
-    pub size: i64,
-}
+use crate::song;
 
-impl Song {
-    pub fn to_string(&self) -> String {
-        return String::from(format!("{} - {} {}, {}; {}s", &self.track_num, &self.title, &self.album,&self.year,&self.duration));
-    }
-
-    pub fn hash(&mut self) -> Result<(), io::Error> {
-        self.hash = song_hash(&self.path)?;
-        return Ok(());
-    }
-}
-
-// This is an expensive function. It takes a while to run.
-// it hashes the whole file appended with the file path
-fn song_hash(filepath: &str) -> Result<String, io::Error> {
-    const BUFFER_SIZE: usize = 8192;
-    let mut file = File::open(filepath)?;
-    let mut buffer = [0; BUFFER_SIZE];
-    let mut context = Sha1::new();
-    loop {
-        // let count = reader.read(&mut buffer[..])?;
-        let count = file.read(&mut buffer[..])?;
-        context.update(&buffer[..count]);
-        if count == 0 { break };
-    }
-    context.update(&filepath[..]);
-    let hash = context.finalize();
-    let hash_string = format!("{:x}",hash);
-    return Ok(hash_string);
-}
-
-pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
+pub fn get_meta(filepath: &str) -> Result<song::Song, io::Error> {
     // let comm = Command::new("ls").args([".","src"]).output().expect("lala");
     // println!("{}",String::from_utf8_lossy(&comm.stdout));
     // ffprobe -loglevel 0 -print_format json -show_format -show_streams [filepath]
@@ -105,7 +60,7 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
         None => -1
     };
     let size = fs::metadata(filepath)?.len() as i64;
-    let song = Song{
+    let song = song::Song{
         title,
         album,
         artist,
@@ -123,13 +78,13 @@ pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
     return Ok(song);
 }
 
-pub fn get_meta_dir(dir: &str) -> Vec<Song> {
+pub fn get_meta_dir(dir: &str) -> Vec<song::Song> {
     // walk through every file in this directory and its subdirectories
-    let mut songs : Vec<Song> = vec![];
+    let mut songs : Vec<song::Song> = vec![];
     for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
         // println!("ffprobing: {}",entry.path().display());
         // get_meta() is an expensive function
-        let meta : Song = match get_meta(entry.path().to_str().unwrap()) {
+        let meta : song::Song = match get_meta(entry.path().to_str().unwrap()) {
             Ok(m) => {
                 println!("successful!");
                 m
@@ -150,7 +105,7 @@ pub struct SongDB {
 // Song database
 impl SongDB {
     // add a song to the database
-    pub fn add(&self, song: &Song) -> Result<(),sqlite::Error>{
+    pub fn add(&self, song: &song::Song) -> Result<(),sqlite::Error>{
         // insert into song relation
         let mut statement = self.connection.prepare("insert into song values (:title,:album,:tracknum,:artist,:genre,:year,:path,:hash,:size)")?;
         statement.bind_by_name(":title", &song.title[..])?;
@@ -160,7 +115,7 @@ impl SongDB {
         statement.bind_by_name(":genre", &song.genre[..])?;
         statement.bind_by_name(":year", song.year)?;
         // statement.bind_by_name(":hash", &song.hash[..])?;
-        let hash = song_hash(&song.path[..]).ok().unwrap_or(String::from("")); // not safe
+        let hash = song::song_hash(&song.path[..]).ok().unwrap_or(String::from("")); // not safe
         statement.bind_by_name(":hash", &hash[..])?;
         statement.bind_by_name(":path", &song.path[..])?;
         statement.bind_by_name(":size", song.size)?;
@@ -192,7 +147,7 @@ impl SongDB {
         return Ok(());
     }
 
-    pub fn update(&self, title: &str, album: &str, song: &Song) -> Result<(),sqlite::Error>{
+    pub fn update(&self, title: &str, album: &str, song: &song::Song) -> Result<(),sqlite::Error>{
         // insert into song relation
         let mut statement = self.connection.prepare("update song set TrackNumber = :tracknum, Artist = :artist, Genre = :genre, Year = :year, Path = :path, Version = :hash, Size = :size where Title = :title and Album = :album")?;
         statement.bind_by_name(":title", &title[..])?;
@@ -259,7 +214,7 @@ impl SongDB {
     }
     */
 
-    pub fn get_meta(&self, title: &str, album: &str) -> Option<Song> {
+    pub fn get_meta(&self, title: &str, album: &str) -> Option<song::Song> {
         let mut statement = self.connection.prepare("select * from song where Title = :title and Album = :album").ok()?;
         statement.bind_by_name(":title", &title[..]).ok()?;
         statement.bind_by_name(":album", &album[..]).ok()?;
@@ -274,7 +229,7 @@ impl SongDB {
            let path = statement.read::<String>(6).ok()?; 
            let hash = statement.read::<String>(7).ok()?; 
            let size = statement.read::<i64>(8).ok()?; 
-           let song = Song{
+           let song = song::Song{
                title,
                album,
                artist,
@@ -318,7 +273,7 @@ impl SongDB {
 
         // check if checksum is the same
         if check_hash {
-            if song_hash(&path[..]).ok()? != hash {
+            if song::song_hash(&path[..]).ok()? != hash {
                 return Some(false);
             }
         }
