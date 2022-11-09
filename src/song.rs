@@ -3,6 +3,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use sha1::{Sha1,Digest};
 
+#[derive(Clone)]
 pub struct Song {
     pub title: String,
     pub album: String,

@@ -116,7 +116,7 @@ impl SongDB {
         statement.bind_by_name(":genre", &song.genre[..])?;
         statement.bind_by_name(":year", song.year)?;
         // statement.bind_by_name(":hash", &song.hash[..])?;
-        let hash = song_hash(&song.path[..]).ok().unwrap_or(String::from("")); // not safe
+        let hash = song::song_hash(&song.path[..]).ok().unwrap_or(String::from("")); // not safe
         statement.bind_by_name(":hash", &hash[..])?;
         statement.bind_by_name(":path", &song.path[..])?;
         statement.bind_by_name(":size", song.size)?;
@@ -220,10 +220,10 @@ impl SongDB {
         statement.bind_by_name(":title", &title[..]).ok()?;
         statement.bind_by_name(":album", &album[..]).ok()?;
 
-        return match self.query(statement) {
+        return match self.query(&mut statement) {
             Some(x) => {
                 if x.len() > 0 {
-                    Some(x[0])
+                    Some(x[0].clone())
                 }
                 else {
                     None
@@ -268,13 +268,13 @@ impl SongDB {
             None => {return Vec::new()}
         };
 
-        return match self.query(statement) {
+        return match self.query(&mut statement) {
             Some(x) => x,
             None => {return Vec::new()}
         }
     }
 
-    fn query(&self, statement : sqlite::Statement) -> Option<Vec<Song>> {
+    fn query(&self, statement : &mut sqlite::Statement) -> Option<Vec<Song>> {
         let mut song_list : Vec<Song> = Vec::new();
         while let sqlite::State::Row = statement.next().ok()? {
            let title = statement.read::<String>(0).ok()?; 
@@ -299,6 +299,7 @@ impl SongDB {
                hash,
                size,
            };
+           song_list.push(song);
         }
         return Some(song_list);
     }
