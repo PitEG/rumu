@@ -4,9 +4,10 @@ use json;
 use sqlite;
 use walkdir::WalkDir;
 
+use crate::song::Song;
 use crate::song;
 
-pub fn get_meta(filepath: &str) -> Result<song::Song, io::Error> {
+pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
     // let comm = Command::new("ls").args([".","src"]).output().expect("lala");
     // println!("{}",String::from_utf8_lossy(&comm.stdout));
     // ffprobe -loglevel 0 -print_format json -show_format -show_streams [filepath]
@@ -60,7 +61,7 @@ pub fn get_meta(filepath: &str) -> Result<song::Song, io::Error> {
         None => -1
     };
     let size = fs::metadata(filepath)?.len() as i64;
-    let song = song::Song{
+    let song = Song{
         title,
         album,
         artist,
@@ -78,13 +79,13 @@ pub fn get_meta(filepath: &str) -> Result<song::Song, io::Error> {
     return Ok(song);
 }
 
-pub fn get_meta_dir(dir: &str) -> Vec<song::Song> {
+pub fn get_meta_dir(dir: &str) -> Vec<Song> {
     // walk through every file in this directory and its subdirectories
-    let mut songs : Vec<song::Song> = vec![];
+    let mut songs : Vec<Song> = vec![];
     for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
         // println!("ffprobing: {}",entry.path().display());
         // get_meta() is an expensive function
-        let meta : song::Song = match get_meta(entry.path().to_str().unwrap()) {
+        let meta : Song = match get_meta(entry.path().to_str().unwrap()) {
             Ok(m) => {
                 println!("successful!");
                 m
@@ -105,7 +106,7 @@ pub struct SongDB {
 // Song database
 impl SongDB {
     // add a song to the database
-    pub fn add(&self, song: &song::Song) -> Result<(),sqlite::Error>{
+    pub fn add(&self, song: &Song) -> Result<(),sqlite::Error>{
         // insert into song relation
         let mut statement = self.connection.prepare("insert into song values (:title,:album,:tracknum,:artist,:genre,:year,:path,:hash,:size)")?;
         statement.bind_by_name(":title", &song.title[..])?;
@@ -115,7 +116,7 @@ impl SongDB {
         statement.bind_by_name(":genre", &song.genre[..])?;
         statement.bind_by_name(":year", song.year)?;
         // statement.bind_by_name(":hash", &song.hash[..])?;
-        let hash = song::song_hash(&song.path[..]).ok().unwrap_or(String::from("")); // not safe
+        let hash = song_hash(&song.path[..]).ok().unwrap_or(String::from("")); // not safe
         statement.bind_by_name(":hash", &hash[..])?;
         statement.bind_by_name(":path", &song.path[..])?;
         statement.bind_by_name(":size", song.size)?;
@@ -147,7 +148,7 @@ impl SongDB {
         return Ok(());
     }
 
-    pub fn update(&self, title: &str, album: &str, song: &song::Song) -> Result<(),sqlite::Error>{
+    pub fn update(&self, title: &str, album: &str, song: &Song) -> Result<(),sqlite::Error>{
         // insert into song relation
         let mut statement = self.connection.prepare("update song set TrackNumber = :tracknum, Artist = :artist, Genre = :genre, Year = :year, Path = :path, Version = :hash, Size = :size where Title = :title and Album = :album")?;
         statement.bind_by_name(":title", &title[..])?;
@@ -214,11 +215,24 @@ impl SongDB {
     }
     */
 
-    pub fn get_meta(&self, title: &str, album: &str) -> Option<song::Song> {
+    pub fn get_meta(&self, title: &str, album: &str) -> Option<Song> {
         let mut statement = self.connection.prepare("select * from song where Title = :title and Album = :album").ok()?;
         statement.bind_by_name(":title", &title[..]).ok()?;
         statement.bind_by_name(":album", &album[..]).ok()?;
 
+        return match self.query(statement) {
+            Some(x) => {
+                if x.len() > 0 {
+                    Some(x[0])
+                }
+                else {
+                    None
+                }
+            },
+            None => None
+        }
+
+        /*
         while let sqlite::State::Row = statement.next().ok()? {
            let title = statement.read::<String>(0).ok()?; 
            let album = statement.read::<String>(1).ok()?; 
@@ -229,7 +243,7 @@ impl SongDB {
            let path = statement.read::<String>(6).ok()?; 
            let hash = statement.read::<String>(7).ok()?; 
            let size = statement.read::<i64>(8).ok()?; 
-           let song = song::Song{
+           let song = Song{
                title,
                album,
                artist,
@@ -245,6 +259,48 @@ impl SongDB {
            return Some(song);
         }
         return None;
+        */
+    }
+
+    pub fn search_all(&self) -> Vec<Song> {
+        let mut statement = match self.connection.prepare("select * from song").ok() {
+            Some(x) => x,
+            None => {return Vec::new()}
+        };
+
+        return match self.query(statement) {
+            Some(x) => x,
+            None => {return Vec::new()}
+        }
+    }
+
+    fn query(&self, statement : sqlite::Statement) -> Option<Vec<Song>> {
+        let mut song_list : Vec<Song> = Vec::new();
+        while let sqlite::State::Row = statement.next().ok()? {
+           let title = statement.read::<String>(0).ok()?; 
+           let album = statement.read::<String>(1).ok()?; 
+           let track_num = statement.read::<i64>(2).ok()?; 
+           let artist = statement.read::<String>(3).ok()?; 
+           let genre = statement.read::<String>(4).ok()?; 
+           let year = statement.read::<i64>(5).ok()?; 
+           let path = statement.read::<String>(6).ok()?; 
+           let hash = statement.read::<String>(7).ok()?; 
+           let size = statement.read::<i64>(8).ok()?; 
+           let song = Song{
+               title,
+               album,
+               artist,
+               genre,
+               year, 
+               track_num,
+               duration: 0., // currently not saved
+               path,
+               lyrics: String::from("placeholder"), // currently not querying in this function 
+               hash,
+               size,
+           };
+        }
+        return Some(song_list);
     }
 
     // checks if file of song in databse has changed
@@ -282,10 +338,6 @@ impl SongDB {
         return Some(true)
     }
 
-    #[allow(dead_code)]
-    pub fn search(&self) {
-        return;
-    }
 }
 
 // Open a song database file
