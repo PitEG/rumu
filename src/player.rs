@@ -31,6 +31,11 @@ impl Player {
         return self.command(&mut command);
     }
 
+    pub fn stop(&mut self) -> Result<(),&str> {
+        let mut command = ["stop"];
+        return self.command(&mut command);
+    }
+
     pub fn is_song_finished(&mut self) -> bool {
         match self.backend.wait_event(0.001) {
             Some(v) => {

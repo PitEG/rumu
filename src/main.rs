@@ -46,6 +46,6 @@ fn main() {
         Err(e) => println!("{}",e),
     }; 
 
-    let player = app::create(db);
-    let _ = player.start();
+    let mut app = app::create(db);
+    let _ = app.start();
 }

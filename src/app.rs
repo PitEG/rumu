@@ -18,10 +18,11 @@ use crate::song::Song;
 
 pub struct App {
     songs: SongDB,
+    player: player::Player
 }
 
 impl App {
-    pub fn start(&self) -> Result<(), io::Error> {
+    pub fn start(&mut self) -> Result<(), io::Error> {
         // sample tui code
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -29,12 +30,11 @@ impl App {
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
 
-        let mut player = player::new();
         let mut state = ListState::default();
-        state.select(Some(1));
+        state.select(None);
+        let mut result_list = self.songs.search_all();
 
         loop {
-            let list = self.result_list();
             // draw loop
             terminal.draw(|f| {
 
@@ -81,6 +81,8 @@ impl App {
                     .title("Block")
                     .borders(Borders::ALL);
 
+                let list = song_list_to_tui_list(&result_list);
+
                 f.render_widget(block.clone(), right_top_chunk);
                 f.render_widget(block.clone(), right_bottom_chunk);
                 f.render_stateful_widget(list, center_chunk, &mut state);
@@ -97,9 +99,25 @@ impl App {
                         KeyCode::Up => {
                             let curr = match state.selected() {
                                 Some(v) => v,
-                                None => 0,
+                                None => 1,
                             };
                             state.select(Some(std::cmp::min(88,curr.overflowing_sub(1).0)));
+                        }
+                        KeyCode::Down => {
+                            let curr = match state.selected() {
+                                Some(v) => v,
+                                None => 0,
+                            };
+                            state.select(Some((curr + 1) % 89));
+                        }
+                        KeyCode::Enter => {
+                            self.player.stop().ok();
+                            match state.selected() {
+                                Some(x) => {
+                                    self.player.play(&result_list[x].path[..]).ok();
+                                }
+                                None => {},
+                            }
                         }
                         _ => {}, // else do nothing
                     }
@@ -124,19 +142,24 @@ impl App {
 
         Ok(())
     }
+}
 
-    fn result_list(&self) -> List {
-        let song_list = self.songs.search_all();
-        let item_list : Vec<ListItem> = song_list.iter().map(|x| ListItem::new(x.to_string())).collect();
-        let list = List::new(item_list)
-            .block(Block::default().title("list of stuf").borders(Borders::ALL))
-            .style(Style::default().fg(Color::White))
-            .highlight_symbol(">>");
-        return list;
-    }
+fn song_list_to_tui_list(song_list : &Vec<Song>) -> List {
+    // let mut song_list = self.songs.search_all();
+    // song_list.sort_by(|a,b| a.album.cmp(&b.album));
+    let item_list : Vec<ListItem> = song_list.iter().map(|x| ListItem::new(x.to_string())).collect();
+    let mut list = List::new(item_list)
+        .block(Block::default().title("list of stuf").borders(Borders::ALL))
+        .style(Style::default().fg(Color::White))
+        .highlight_symbol(">>");
+    return list;
 }
 
 pub fn create(songdb: SongDB) -> App {
-    let app = App {songs: songdb};
+    let player = player::new();
+    let app = App {
+        songs: songdb,
+        player
+    };
     return app;
 }
