@@ -9,5 +9,5 @@ pub enum Event {
 }
 
 pub trait Command {
-    fn command(event : &Event);
+    fn command(&mut self, event : &Event);
 }
