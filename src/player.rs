@@ -1,4 +1,4 @@
-use mpv::{MpvHandler, MpvHandlerBuilder};
+use mpv::{MpvHandler, MpvHandlerBuilder, MpvFormat};
 
 pub struct Player {
     backend: MpvHandler,
@@ -22,7 +22,7 @@ impl Player {
     fn command(&mut self, command : &mut [&str]) -> Result<(),&str> {
         match self.backend.command(command) {
             Ok(v) => Ok(v),
-            Err(e) => {print!("{}",e); Err("queue fail")},
+            Err(e) => {print!("{}",e); Err("command fail")},
         }
     }
 
@@ -45,6 +45,13 @@ impl Player {
                 }
             },
             None => { return false },
+        }
+    }
+
+    pub fn get_time_left(&self) -> f64 {
+        match self.backend.get_property("time-remaining") {
+            Ok(v) => v,
+            Err(_) => 0.0,
         }
     }
 
