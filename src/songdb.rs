@@ -98,6 +98,35 @@ pub fn get_meta_dir(dir: &str) -> Vec<Song> {
     return songs;
 }
 
+pub enum Table {
+    Title,
+    Album,
+    TrackNum,
+    Artist,
+    Genre,
+    Year,
+    Hash,
+    Path,
+    Size,
+}
+
+impl ToString for Table {
+    // The string is the actual name of the corresponding table in the database
+    fn to_string(&self) -> String {
+        return match self {
+            Table::Title    => String::from("title"),
+            Table::Album    => String::from("album"),
+            Table::TrackNum => String::from("tracknumber"),
+            Table::Artist   => String::from("artist"),
+            Table::Genre    => String::from("genre"),
+            Table::Year     => String::from("year"),
+            Table::Hash     => String::from("hash"),
+            Table::Path     => String::from("path"),
+            Table::Size     => String::from("size"),
+        }
+    }
+}
+
 pub struct SongDB {
     pub database_path: String,
     connection: sqlite::Connection,
@@ -207,14 +236,6 @@ impl SongDB {
         return Ok(());
     }
 
-    // look through directory recursively and add song files that don't exist in db
-    /*
-    pub fn add_new_songs_dir(&self, dir: &str) {
-        for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
-        }
-    }
-    */
-
     pub fn get_meta(&self, title: &str, album: &str) -> Option<Song> {
         let mut statement = self.connection.prepare("select * from song where Title = :title and Album = :album").ok()?;
         statement.bind_by_name(":title", &title[..]).ok()?;
@@ -231,35 +252,6 @@ impl SongDB {
             },
             None => None
         }
-
-        /*
-        while let sqlite::State::Row = statement.next().ok()? {
-           let title = statement.read::<String>(0).ok()?; 
-           let album = statement.read::<String>(1).ok()?; 
-           let track_num = statement.read::<i64>(2).ok()?; 
-           let artist = statement.read::<String>(3).ok()?; 
-           let genre = statement.read::<String>(4).ok()?; 
-           let year = statement.read::<i64>(5).ok()?; 
-           let path = statement.read::<String>(6).ok()?; 
-           let hash = statement.read::<String>(7).ok()?; 
-           let size = statement.read::<i64>(8).ok()?; 
-           let song = Song{
-               title,
-               album,
-               artist,
-               genre,
-               year, 
-               track_num,
-               duration: 0., // currently not saved
-               path,
-               lyrics: String::from("placeholder"), // currently not querying in this function 
-               hash,
-               size,
-           };
-           return Some(song);
-        }
-        return None;
-        */
     }
 
     pub fn search_all(&self) -> Vec<Song> {
@@ -302,6 +294,17 @@ impl SongDB {
            song_list.push(song);
         }
         return Some(song_list);
+    }
+
+    pub fn get_table(&self, table : Table) -> Result<Vec<String>,sqlite::Error> {
+        let mut results : Vec<String> = Vec::new();
+        let mut statement = self.connection.prepare(format!("select distinct {} from song", table.to_string()))?;
+        while let sqlite::State::Row = statement.next()? {
+            let value = statement.read::<String>(0)?;
+            results.push(value);
+        }
+        
+        return Ok(results);
     }
 
     // checks if file of song in databse has changed

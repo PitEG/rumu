@@ -10,14 +10,15 @@ fn main() {
     println!("Hello, I'm making rumu!");
 
     let mut player = player::new();
+    /*
     player.play(&args[1]);
     player.is_song_finished();
     thread::sleep(Duration::from_millis(2000));
     println!("{}",&player.get_time_left().to_string());
     thread::sleep(Duration::from_millis(7000));
     player.is_song_finished();
+    */
 
-    /*
     // open database
     let db = match songdb::open("test.db") {
         Ok(d) => d,
@@ -47,6 +48,9 @@ fn main() {
         Err(e) => println!("{}",e),
     }; 
 
+    println!("{:?}", db.get_table(songdb::Table::Album).unwrap());
+
+    /*
     let mut app = app::create(db);
     let _ = app.start();
     */
