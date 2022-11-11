@@ -1,4 +1,4 @@
-use std::{io, thread, time::Duration};
+use std::{io, thread, time::Duration, collections::VecDeque};
 use tui::{
     backend::CrosstermBackend,
     widgets::{Widget, Block, Borders, List, ListState, ListItem},
@@ -16,8 +16,12 @@ use crate::songdb::SongDB;
 use crate::player;
 use crate::song::Song;
 
+mod navigator;
+mod command;
+
 pub struct App {
     songs: SongDB,
+    queue: VecDeque<Song>,
     player: player::Player
 }
 
@@ -35,7 +39,7 @@ impl App {
         let mut result_list = self.songs.search_all();
 
         loop {
-            // draw loop
+            // draw 
             terminal.draw(|f| {
 
                 let main_chunk = Layout::default()
@@ -82,8 +86,9 @@ impl App {
                     .borders(Borders::ALL);
 
                 let list = song_list_to_tui_list(&result_list);
+                let queue = queue_to_tui_list(&self.queue);
 
-                f.render_widget(block.clone(), right_top_chunk);
+                f.render_widget(queue, right_top_chunk);
                 f.render_widget(block.clone(), right_bottom_chunk);
                 f.render_stateful_widget(list, center_chunk, &mut state);
                 f.render_widget(block.clone(), center_top_chunk);
@@ -114,9 +119,18 @@ impl App {
                             self.player.stop().ok();
                             match state.selected() {
                                 Some(x) => {
-                                    self.player.play(&result_list[x].path[..]).ok();
+                                    self.queue.push_back(result_list[x].clone());
                                 }
                                 None => {},
+                            }
+                        }
+                        KeyCode::Char('p') => {
+                            self.player.stop().ok();
+                            match self.queue.get(0) {
+                                Some(x) => { 
+                                    self.player.play(&x.path[..]).ok(); 
+                                },
+                                _ => {}
                             }
                         }
                         _ => {}, // else do nothing
@@ -128,6 +142,9 @@ impl App {
                 // Event::Paste(data) => println!("{:?}", data),
                 _ => {}, // else do nothing else
             }
+
+            // process commands
+
             thread::sleep(Duration::from_millis(20));
         }
 
@@ -148,7 +165,16 @@ fn song_list_to_tui_list(song_list : &Vec<Song>) -> List {
     // let mut song_list = self.songs.search_all();
     // song_list.sort_by(|a,b| a.album.cmp(&b.album));
     let item_list : Vec<ListItem> = song_list.iter().map(|x| ListItem::new(x.to_string())).collect();
-    let mut list = List::new(item_list)
+    let list = List::new(item_list)
+        .block(Block::default().title("list of stuf").borders(Borders::ALL))
+        .style(Style::default().fg(Color::White))
+        .highlight_symbol(">>");
+    return list;
+}
+
+fn queue_to_tui_list(queue: &VecDeque<Song>) -> List {
+    let item_list : Vec<ListItem> = queue.iter().map(|x| ListItem::new(x.to_string())).collect();
+    let list = List::new(item_list)
         .block(Block::default().title("list of stuf").borders(Borders::ALL))
         .style(Style::default().fg(Color::White))
         .highlight_symbol(">>");
@@ -157,8 +183,10 @@ fn song_list_to_tui_list(song_list : &Vec<Song>) -> List {
 
 pub fn create(songdb: SongDB) -> App {
     let player = player::new();
+    let queue : VecDeque<Song> = VecDeque::new();
     let app = App {
         songs: songdb,
+        queue,
         player
     };
     return app;
