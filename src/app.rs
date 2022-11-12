@@ -16,9 +16,12 @@ use crate::songdb::SongDB;
 use crate::player;
 use crate::song::Song;
 use crate::app::navigator::{Navigator};
+use crate::app::songlist::{SongList, SongOrder};
+use crate::app::command::Command;
 
 mod navigator;
 mod command;
+mod songlist;
 
 pub struct App {
     songs: SongDB,
@@ -38,7 +41,9 @@ impl App {
 
         let mut state = ListState::default();
         state.select(None);
-        let mut result_list = self.songs.search_all();
+        
+        let mut songlist : SongList = SongList::new(self.songs.search_all());
+        songlist.order_items(SongOrder::Album);
 
         loop {
             // draw 
@@ -87,7 +92,7 @@ impl App {
                     .title("Block")
                     .borders(Borders::ALL);
 
-                let list = song_list_to_tui_list(&result_list);
+                let list = song_list_to_tui_list(&songlist.items);
                 let queue = queue_to_tui_list(&self.queue);
 
                 f.render_widget(queue, right_top_chunk);
@@ -104,24 +109,20 @@ impl App {
                     match event.code {
                         KeyCode::Esc => {break;},
                         KeyCode::Up => {
-                            let curr = match state.selected() {
-                                Some(v) => v,
-                                None => 1,
-                            };
-                            state.select(Some(std::cmp::min(88,curr.overflowing_sub(1).0)));
+                            let command : command::Event = command::Event::Up;
+                            songlist.command(&command);
+                            state.select(Some(songlist.get_selection() as usize));
                         }
                         KeyCode::Down => {
-                            let curr = match state.selected() {
-                                Some(v) => v,
-                                None => 0,
-                            };
-                            state.select(Some((curr + 1) % 89));
+                            let command : command::Event = command::Event::Down;
+                            songlist.command(&command);
+                            state.select(Some(songlist.get_selection() as usize));
                         }
                         KeyCode::Enter => {
                             self.player.stop().ok();
                             match state.selected() {
                                 Some(x) => {
-                                    self.queue.push_back(result_list[x].clone());
+                                    self.queue.push_back(songlist.get_items()[x].clone());
                                 }
                                 None => {},
                             }
