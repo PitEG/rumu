@@ -15,6 +15,7 @@ use crossterm::{
 use crate::songdb::SongDB;
 use crate::player;
 use crate::song::Song;
+use crate::app::navigator::{Navigator};
 
 mod navigator;
 mod command;
@@ -22,6 +23,7 @@ mod command;
 pub struct App {
     songs: SongDB,
     queue: VecDeque<Song>,
+    nav: Navigator,
     player: player::Player
 }
 
@@ -92,7 +94,7 @@ impl App {
                 f.render_widget(block.clone(), right_bottom_chunk);
                 f.render_stateful_widget(list, center_chunk, &mut state);
                 f.render_widget(block.clone(), center_top_chunk);
-                f.render_widget(block.clone(), left_chunk);
+                f.render_widget(nav_to_tui_list(&self.nav), left_chunk);
                 f.render_widget(block, bottom_chunk);
             })?;
 
@@ -181,11 +183,23 @@ fn queue_to_tui_list(queue: &VecDeque<Song>) -> List {
     return list;
 }
 
+fn nav_to_tui_list(nav: &navigator::Navigator) -> List {
+    let mut item_list : Vec<ListItem> = Vec::new();
+    item_list.push(ListItem::new("something"));
+    let list = List::new(item_list)
+        .block(Block::default().title("list of stuf").borders(Borders::ALL))
+        .style(Style::default().fg(Color::White))
+        .highlight_symbol(">>");
+    return list;
+}
+
 pub fn create(songdb: SongDB) -> App {
     let player = player::new();
     let queue : VecDeque<Song> = VecDeque::new();
+    let nav: Navigator = Navigator::new(); 
     let app = App {
         songs: songdb,
+        nav,
         queue,
         player
     };

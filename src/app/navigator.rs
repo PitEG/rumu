@@ -103,4 +103,16 @@ impl Navigator {
             },
         }
     }
+
+    pub fn new() -> Navigator {
+        let items: Vec<(Category,bool,Vec<String>)> = Vec::new();
+        let selection: (i32,Option<i32>) = (0,None);
+        let search_query: Option<(String,String)> = None;
+        let nav = Navigator {
+            items,
+            selection,
+            search_query,
+        };
+        return nav;
+    }
 }
