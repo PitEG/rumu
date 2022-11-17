@@ -22,6 +22,7 @@ use crate::app::command::Command;
 mod navigator;
 mod command;
 mod songlist;
+mod songqueue;
 
 pub struct App {
     songs: SongDB,
