@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use crate::app::command::{Event,Command};
 use crate::song::Song;
 
-struct SongQueue {
+pub struct SongQueue {
     pub queue: VecDeque<Song>,
     selection: Option<u32>,
     selected_song: Option<Song>,

@@ -18,11 +18,19 @@ use crate::song::Song;
 use crate::app::navigator::{Navigator};
 use crate::app::songlist::{SongList, SongOrder};
 use crate::app::command::Command;
+use crate::app::songqueue::SongQueue;
 
 mod navigator;
 mod command;
 mod songlist;
 mod songqueue;
+
+enum SelectedPanel {
+    SongList,
+    Nav,
+    Queue,
+    Search,
+}
 
 pub struct App {
     songs: SongDB,
@@ -45,6 +53,11 @@ impl App {
         
         let mut songlist : SongList = SongList::new(self.songs.search_all());
         songlist.order_items(SongOrder::Album);
+        state.select(Some(songlist.get_selection() as usize));
+
+        let mut songqueue : SongQueue = SongQueue::new();
+
+        let mut panel = SelectedPanel::SongList;
 
         loop {
             // draw 
@@ -105,22 +118,25 @@ impl App {
             })?;
 
             // read input
+            let curr_panel : &mut dyn command::Command = match panel {
+                SelectedPanel::SongList => &mut songlist,
+                _ => &mut songqueue,
+            };
             match crossterm::event::read()? {
                 Event::Key(event) => {
                     match event.code {
                         KeyCode::Esc => {break;},
                         KeyCode::Up => {
                             let command : command::Event = command::Event::Up;
-                            songlist.command(&command);
+                            curr_panel.command(&command);
                             state.select(Some(songlist.get_selection() as usize));
                         }
                         KeyCode::Down => {
                             let command : command::Event = command::Event::Down;
-                            songlist.command(&command);
+                            curr_panel.command(&command);
                             state.select(Some(songlist.get_selection() as usize));
                         }
                         KeyCode::Enter => {
-                            self.player.stop().ok();
                             match state.selected() {
                                 Some(x) => {
                                     self.queue.push_back(songlist.get_items()[x].clone());

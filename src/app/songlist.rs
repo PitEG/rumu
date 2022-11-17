@@ -22,12 +22,12 @@ impl Command for SongList {
             Event::Up => {
                 self.selection -= 1;
                 if self.selection < 0 {
-                    self.selection = self.items.len() as i32;
+                    self.selection = self.items.len() as i32 - 1;
                 }
             },
             Event::Down => {
                 self.selection += 1;
-                if self.selection > self.items.len() as i32 {
+                if self.selection >= self.items.len() as i32 {
                     self.selection = 0;
                 }
             },

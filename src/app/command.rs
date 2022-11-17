@@ -6,6 +6,7 @@ pub enum Event {
     Right,
     Accept,
     Back,
+    None,
 }
 
 pub trait Command {
