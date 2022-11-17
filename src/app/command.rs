@@ -1,3 +1,5 @@
+use crate::song::Song;
+
 pub enum Event {
     Char(char),
     Up,
@@ -7,6 +9,11 @@ pub enum Event {
     Accept,
     Back,
     None,
+}
+
+pub struct Response {
+    song : Option<Song>,
+    query : Option<(String,String)>
 }
 
 pub trait Command {

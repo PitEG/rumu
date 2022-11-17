@@ -31,6 +31,18 @@ impl Command for SongList {
                     self.selection = 0;
                 }
             },
+            Event::Left => {
+                self.selection -= 10;
+                if self.selection < 0 {
+                    self.selection = 0;
+                }
+            },
+            Event::Right => {
+                self.selection += 10;
+                if self.selection >= self.items.len() as i32 {
+                    self.selection = self.items.len() as i32 - 1;
+                }
+            }
             _ => {},
         }
     }

@@ -113,6 +113,10 @@ impl SongQueue {
         });
     }
 
+    pub fn push(&mut self, song: Song) {
+        self.queue.push_back(song);
+    }
+
     pub fn new() -> SongQueue {
         let q = SongQueue {
             queue: VecDeque::new(),

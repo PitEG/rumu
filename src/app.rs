@@ -107,7 +107,7 @@ impl App {
                     .borders(Borders::ALL);
 
                 let list = song_list_to_tui_list(&songlist.items);
-                let queue = queue_to_tui_list(&self.queue);
+                let queue = queue_to_tui_list(&songqueue);
 
                 f.render_widget(queue, right_top_chunk);
                 f.render_widget(block.clone(), right_bottom_chunk);
@@ -129,24 +129,30 @@ impl App {
                         KeyCode::Up => {
                             let command : command::Event = command::Event::Up;
                             curr_panel.command(&command);
-                            state.select(Some(songlist.get_selection() as usize));
                         }
                         KeyCode::Down => {
                             let command : command::Event = command::Event::Down;
                             curr_panel.command(&command);
-                            state.select(Some(songlist.get_selection() as usize));
                         }
                         KeyCode::Enter => {
                             match state.selected() {
                                 Some(x) => {
-                                    self.queue.push_back(songlist.get_items()[x].clone());
+                                    songqueue.push(songlist.get_items()[x].clone());
                                 }
                                 None => {},
                             }
                         }
+                        KeyCode::Left => {
+                            let command : command::Event = command::Event::Left;
+                            curr_panel.command(&command);
+                        },
+                        KeyCode::Right => {
+                            let command : command::Event = command::Event::Right;
+                            curr_panel.command(&command);
+                        },
                         KeyCode::Char('p') => {
                             self.player.stop().ok();
-                            match self.queue.get(0) {
+                            match Some(songqueue.queue[0].clone()) {
                                 Some(x) => { 
                                     self.player.play(&x.path[..]).ok(); 
                                 },
@@ -164,6 +170,7 @@ impl App {
             }
 
             // process commands
+            state.select(Some(songlist.get_selection() as usize));
 
             thread::sleep(Duration::from_millis(20));
         }
@@ -192,8 +199,9 @@ fn song_list_to_tui_list(song_list : &Vec<Song>) -> List {
     return list;
 }
 
-fn queue_to_tui_list(queue: &VecDeque<Song>) -> List {
-    let item_list : Vec<ListItem> = queue.iter().map(|x| ListItem::new(x.to_string())).collect();
+fn nav_to_tui_list(nav: &navigator::Navigator) -> List {
+    let mut item_list : Vec<ListItem> = Vec::new();
+    item_list.push(ListItem::new("something"));
     let list = List::new(item_list)
         .block(Block::default().title("list of stuf").borders(Borders::ALL))
         .style(Style::default().fg(Color::White))
@@ -201,9 +209,8 @@ fn queue_to_tui_list(queue: &VecDeque<Song>) -> List {
     return list;
 }
 
-fn nav_to_tui_list(nav: &navigator::Navigator) -> List {
-    let mut item_list : Vec<ListItem> = Vec::new();
-    item_list.push(ListItem::new("something"));
+fn queue_to_tui_list(q : &songqueue::SongQueue) -> List {
+    let item_list : Vec<ListItem> = q.queue.iter().map(|x| ListItem::new(x.to_string())).collect();
     let list = List::new(item_list)
         .block(Block::default().title("list of stuf").borders(Borders::ALL))
         .style(Style::default().fg(Color::White))
