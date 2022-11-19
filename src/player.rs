@@ -55,6 +55,13 @@ impl Player {
         }
     }
 
+    pub fn get_song_duration(&self) -> f64 {
+        match self.backend.get_property("duration") {
+            Ok(v) => v,
+            Err(_) => 0.0,
+        }
+    }
+
     // probably not use these two
     pub fn queue(&mut self, path: &str) -> Result<(),&str> {
         let mut command = ["loadfile", path, "append"];

@@ -1,7 +1,11 @@
-use std::{io, thread, time::Duration, collections::VecDeque};
+use std::{
+    thread,
+    io, 
+    time::Duration, 
+    collections::VecDeque};
 use tui::{
     backend::CrosstermBackend,
-    widgets::{Widget, Block, Borders, List, ListState, ListItem},
+    widgets::{Block, Borders, List, ListState, ListItem, Gauge},
     layout::{Layout, Constraint, Direction},
     style::{Style, Color, Modifier}, 
     Terminal
@@ -114,7 +118,7 @@ impl App {
                 f.render_stateful_widget(list, center_chunk, &mut state);
                 f.render_widget(block.clone(), center_top_chunk);
                 f.render_widget(nav_to_tui_list(&self.nav), left_chunk);
-                f.render_widget(block, bottom_chunk);
+                f.render_widget(song_detail(&self.player), bottom_chunk);
             })?;
 
             // read input
@@ -122,53 +126,57 @@ impl App {
                 SelectedPanel::SongList => &mut songlist,
                 _ => &mut songqueue,
             };
-            match crossterm::event::read()? {
-                Event::Key(event) => {
-                    match event.code {
-                        KeyCode::Esc => {break;},
-                        KeyCode::Up => {
-                            let command : command::Event = command::Event::Up;
-                            curr_panel.command(&command);
-                        }
-                        KeyCode::Down => {
-                            let command : command::Event = command::Event::Down;
-                            curr_panel.command(&command);
-                        }
-                        KeyCode::Enter => {
-                            match state.selected() {
-                                Some(x) => {
-                                    songqueue.push(songlist.get_items()[x].clone());
+            match crossterm::event::poll(Duration::new(0,10000)) {
+                Ok(true) => {
+                    match crossterm::event::read()? {
+                        Event::Key(event) => {
+                            match event.code {
+                                KeyCode::Esc => {break;},
+                                KeyCode::Up => {
+                                    let command : command::Event = command::Event::Up;
+                                    curr_panel.command(&command);
                                 }
-                                None => {},
-                            }
-                        }
-                        KeyCode::Left => {
-                            let command : command::Event = command::Event::Left;
-                            curr_panel.command(&command);
-                        },
-                        KeyCode::Right => {
-                            let command : command::Event = command::Event::Right;
-                            curr_panel.command(&command);
-                        },
-                        KeyCode::Char('p') => {
-                            self.player.stop().ok();
-                            match Some(songqueue.queue[0].clone()) {
-                                Some(x) => { 
-                                    self.player.play(&x.path[..]).ok(); 
+                                KeyCode::Down => {
+                                    let command : command::Event = command::Event::Down;
+                                    curr_panel.command(&command);
+                                }
+                                KeyCode::Enter => {
+                                    match state.selected() {
+                                        Some(x) => {
+                                            songqueue.push(songlist.get_items()[x].clone());
+                                        }
+                                        None => {},
+                                    }
+                                }
+                                KeyCode::Left => {
+                                    let command : command::Event = command::Event::Left;
+                                    curr_panel.command(&command);
                                 },
-                                _ => {}
+                                KeyCode::Right => {
+                                    let command : command::Event = command::Event::Right;
+                                    curr_panel.command(&command);
+                                },
+                                KeyCode::Char('p') => {
+                                    self.player.stop().ok();
+                                    match songqueue.queue.get(0) {
+                                        Some(x) => { 
+                                            self.player.play(&x.path[..]).ok(); 
+                                        },
+                                        _ => {}
+                                    }
+                                }
+                                _ => {}, // else do nothing
                             }
-                        }
-                        _ => {}, // else do nothing
+                            // println!("{:?}", event);
+                        },
+                        // Event::Mouse(event) => println!("{:?}", event),
+                        // Event::Resize(width, height) => println!("New size {}x{}", width, height),
+                        // Event::Paste(data) => println!("{:?}", data),
+                        _ => {}, // else do nothing else
                     }
-                    // println!("{:?}", event);
                 },
-                // Event::Mouse(event) => println!("{:?}", event),
-                // Event::Resize(width, height) => println!("New size {}x{}", width, height),
-                // Event::Paste(data) => println!("{:?}", data),
-                _ => {}, // else do nothing else
+                _ => {},
             }
-
             // process commands
             state.select(Some(songlist.get_selection() as usize));
 
@@ -216,6 +224,21 @@ fn queue_to_tui_list(q : &songqueue::SongQueue) -> List {
         .style(Style::default().fg(Color::White))
         .highlight_symbol(">>");
     return list;
+}
+
+fn song_detail(player : &player::Player) -> Gauge {
+    let time_left = player.get_time_left();
+    let duration = player.get_song_duration();
+    let mut fraction_played = (1.0 - time_left / duration).clamp(0.0,1.0);
+    if fraction_played.is_nan() {
+        fraction_played = 0.0;
+    }
+    let gauge = Gauge::default()
+        .block(Block::default().borders(Borders::ALL).title("Progress"))
+        .gauge_style(Style::default().fg(Color::White).bg(Color::Black).add_modifier(Modifier::ITALIC))
+        .ratio(fraction_played);
+    // let gauge = Paragraph::new(Text::from(fraction_played.to_string()));
+    return gauge;
 }
 
 pub fn create(songdb: SongDB) -> App {
