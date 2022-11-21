@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::app::command::{Event,Command};
+use crate::app::command::{Event,Command,Response};
 use crate::song;
 use crate::song::Song;
 
@@ -17,7 +17,7 @@ pub struct SongList {
 }
 
 impl Command for SongList {
-    fn command(&mut self, event: &Event) {
+    fn command(&mut self, event: &Event) -> Option<Response> {
         match event {
             Event::Up => {
                 self.selection -= 1;
@@ -42,9 +42,17 @@ impl Command for SongList {
                 if self.selection >= self.items.len() as i32 {
                     self.selection = self.items.len() as i32 - 1;
                 }
-            }
+            },
+            Event::Accept => {
+                let selected_song = self.get_selected_song();
+                match selected_song {
+                    Some(v) => { return Some(Response::QueueSong(v)); },
+                    _ => {}, 
+                }
+            },
             _ => {},
         }
+        return None;
     }
 }
 
@@ -60,6 +68,10 @@ impl SongList {
 
     pub fn get_selection(&self) -> i32 {
         return self.selection;
+    }
+    
+    pub fn get_selected_song(&self) -> Option<Song> {
+        return Some(self.items[self.selection as usize].clone());
     }
 
     pub fn order_items(&mut self, order: SongOrder) {

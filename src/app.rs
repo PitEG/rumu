@@ -21,7 +21,7 @@ use crate::player;
 use crate::song::Song;
 use crate::app::navigator::{Navigator};
 use crate::app::songlist::{SongList, SongOrder};
-use crate::app::command::Command;
+use crate::app::command::{Command,Response};
 use crate::app::songqueue::SongQueue;
 
 mod navigator;
@@ -124,38 +124,21 @@ impl App {
             // read input
             let curr_panel : &mut dyn command::Command = match panel {
                 SelectedPanel::SongList => &mut songlist,
-                _ => &mut songqueue,
+                _ => &mut songlist,
             };
+
+            let mut response : Option<Response> = None;
             match crossterm::event::poll(Duration::new(0,10000)) {
                 Ok(true) => {
                     match crossterm::event::read()? {
                         Event::Key(event) => {
-                            match event.code {
-                                KeyCode::Esc => {break;},
-                                KeyCode::Up => {
-                                    let command : command::Event = command::Event::Up;
-                                    curr_panel.command(&command);
-                                }
-                                KeyCode::Down => {
-                                    let command : command::Event = command::Event::Down;
-                                    curr_panel.command(&command);
-                                }
-                                KeyCode::Enter => {
-                                    match state.selected() {
-                                        Some(x) => {
-                                            songqueue.push(songlist.get_items()[x].clone());
-                                        }
-                                        None => {},
-                                    }
-                                }
-                                KeyCode::Left => {
-                                    let command : command::Event = command::Event::Left;
-                                    curr_panel.command(&command);
-                                },
-                                KeyCode::Right => {
-                                    let command : command::Event = command::Event::Right;
-                                    curr_panel.command(&command);
-                                },
+                            let command : command::Event = match event.code {
+                                KeyCode::Esc => {break;}, // breaks out of loop
+                                KeyCode::Up => command::Event::Up,
+                                KeyCode::Down => command::Event::Down,
+                                KeyCode::Enter => command::Event::Accept,
+                                KeyCode::Left => command::Event::Left,
+                                KeyCode::Right => command::Event::Right,
                                 KeyCode::Char('p') => {
                                     self.player.stop().ok();
                                     match songqueue.queue.get(0) {
@@ -164,9 +147,11 @@ impl App {
                                         },
                                         _ => {}
                                     }
+                                    command::Event::N
                                 }
-                                _ => {}, // else do nothing
-                            }
+                                _ => command::Event::N, // else do nothing
+                            };
+                            response = curr_panel.command(&command);
                             // println!("{:?}", event);
                         },
                         // Event::Mouse(event) => println!("{:?}", event),
@@ -175,6 +160,22 @@ impl App {
                         _ => {}, // else do nothing else
                     }
                 },
+                _ => {},
+            }
+
+            // process command
+            match response {
+                Some(r) => {
+                    match r {
+                        Response::PlaySong(s) => {
+                            let _ = self.player.play(&s.path[..]);
+                        }
+                        Response::QueueSong(s) => {
+                            songqueue.push(s);
+                        }
+                        _ => {},
+                    }
+                }
                 _ => {},
             }
             // process commands

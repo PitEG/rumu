@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::app::command::{Event,Command};
+use crate::app::command::{Event,Command,Response};
 use crate::song::Song;
 
 pub struct SongQueue {
@@ -10,30 +10,41 @@ pub struct SongQueue {
 }
 
 impl Command for SongQueue {
-    fn command(&mut self, event: &Event) {
+    fn command(&mut self, event: &Event) -> Option<Response> {
         match event {
             Event::Up =>    { self.select_up(); },
             Event::Down =>  { self.select_down(); },
             Event::Back =>  { 
                 self.selection.and_then(|v| {
                     self.remove_song(v as usize);
-                    return Some(());
+                    Some(())
                 });
             },
             Event::Left =>  { self.swap_up(); }
             Event::Right =>  { self.swap_down(); }
-            Event::Accept => { self.select(); }
+            Event::Accept => { 
+                self.select(); 
+                match self.selection {
+                    Some(v) => {
+                        return Some(Response::PlaySong(self.queue[v as usize].clone()));
+                    },
+                    None => {},
+                }
+            }
             _ => {},
         }
+        return None;
     }
 }
 
 impl SongQueue {
     pub fn get_selected_song(&self) -> Option<Song> {
-        return match self.selection {
-            Some(x) => {
-                Some(self.queue[x as usize].clone())
-            },
+        let i = match self.selection {
+            Some(v) => v,
+            None => { return None },
+        };
+        return match self.queue.get(i as usize) {
+            Some(s) => Some(s.clone()),
             None => None,
         }
     }

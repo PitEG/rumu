@@ -9,14 +9,15 @@ pub enum Event {
     Right,
     Accept,
     Back,
-    None,
+    N,
 }
 
 pub enum Response {
-    Song(Song),
+    QueueSong(Song),
+    PlaySong(Song),
     Query(Query),
 }
 
 pub trait Command {
-    fn command(&mut self, event : &Event);
+    fn command(&mut self, event : &Event) -> Option<Response>;
 }

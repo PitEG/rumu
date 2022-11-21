@@ -1,4 +1,4 @@
-use crate::app::command::{Event,Command};
+use crate::app::command::{Event,Command,Response};
 
 struct Category {
     name: String,
@@ -13,7 +13,7 @@ pub struct Navigator {
 
 
 impl Command for Navigator {
-    fn command(&mut self, event: &Event) {
+    fn command(&mut self, event: &Event) -> Option<Response> {
         // 
         // UP/DOWN: move selection
         //
@@ -22,6 +22,8 @@ impl Command for Navigator {
             Event::Down => {self.next()},
             _ => {},
         };
+
+        return None;
     }
 }
 
