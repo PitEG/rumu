@@ -7,6 +7,9 @@ use walkdir::WalkDir;
 use crate::song::Song;
 use crate::song;
 
+pub mod query;
+pub use self::query::Query;
+
 pub fn get_meta(filepath: &str) -> Result<Song, io::Error> {
     // let comm = Command::new("ls").args([".","src"]).output().expect("lala");
     // println!("{}",String::from_utf8_lossy(&comm.stdout));
@@ -360,10 +363,5 @@ pub fn open(db_path: &str) -> Result<SongDB,sqlite::Error> {
         "
     )?;
     return Ok(songdb);
-}
-
-#[allow(dead_code)]
-pub struct Search {
-    pub curr_search: String,
 }
 

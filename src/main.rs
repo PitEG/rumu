@@ -48,8 +48,6 @@ fn main() {
         Err(e) => println!("{}",e),
     }; 
 
-    println!("{:?}", db.get_table(songdb::Table::Album).unwrap());
-
     let mut app = app::create(db);
     let _ = app.start();
 }

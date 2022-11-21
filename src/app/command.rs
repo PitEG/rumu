@@ -1,4 +1,5 @@
 use crate::song::Song;
+use crate::songdb::Query;
 
 pub enum Event {
     Char(char),
@@ -11,9 +12,9 @@ pub enum Event {
     None,
 }
 
-pub struct Response {
-    song : Option<Song>,
-    query : Option<(String,String)>
+pub enum Response {
+    Song(Song),
+    Query(Query),
 }
 
 pub trait Command {
