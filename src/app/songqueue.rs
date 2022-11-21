@@ -6,7 +6,7 @@ use crate::song::Song;
 pub struct SongQueue {
     pub queue: VecDeque<Song>,
     selection: Option<u32>,
-    selected_song: Option<Song>,
+    currently_playing: Option<u32>,
 }
 
 impl Command for SongQueue {
@@ -23,7 +23,6 @@ impl Command for SongQueue {
             Event::Left =>  { self.swap_up(); }
             Event::Right =>  { self.swap_down(); }
             Event::Accept => { 
-                self.select(); 
                 match self.selection {
                     Some(v) => {
                         return Some(Response::PlaySong(self.queue[v as usize].clone()));
@@ -67,7 +66,7 @@ impl SongQueue {
             Some(x) => {
                 let mut new = x.wrapping_sub(1);
                 if new >= self.queue.len() as u32 {
-                    new = self.queue.len() as u32;
+                    new = (self.queue.len() - 1) as u32;
                 }
                 Some(new)
             }
@@ -103,14 +102,6 @@ impl SongQueue {
         }
     }
 
-    pub fn select(&mut self) {
-        self.selected_song = self.selection.and_then(|v| {
-            return self.queue.get(v as usize).and_then(|v| {
-                return Some(v.clone());
-            });
-        });
-    }
-
     pub fn remove_song(&mut self, idx: usize) {
         self.queue.remove(idx);
         self.selection = self.selection.and_then(|v| {
@@ -128,11 +119,15 @@ impl SongQueue {
         self.queue.push_back(song);
     }
 
+    pub fn get_selection(&mut self) -> Option<u32> {
+        return self.selection;
+    }
+
     pub fn new() -> SongQueue {
         let q = SongQueue {
             queue: VecDeque::new(),
             selection: None,
-            selected_song: None,
+            currently_playing: None,
         };
         return q;
     }

@@ -1,8 +1,7 @@
 use std::{
     thread,
     io, 
-    time::Duration, 
-    collections::VecDeque};
+    time::Duration};
 use tui::{
     backend::CrosstermBackend,
     widgets::{Block, Borders, List, ListState, ListItem, Gauge},
@@ -38,7 +37,6 @@ enum SelectedPanel {
 
 pub struct App {
     songs: SongDB,
-    queue: VecDeque<Song>,
     nav: Navigator,
     player: player::Player
 }
@@ -52,14 +50,16 @@ impl App {
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
 
-        let mut state = ListState::default();
-        state.select(None);
         
         let mut songlist : SongList = SongList::new(self.songs.search_all());
         songlist.order_items(SongOrder::Album);
-        state.select(Some(songlist.get_selection() as usize));
+
+        let mut songlist_state = ListState::default();
+        songlist_state.select(Some(songlist.get_selection() as usize));
 
         let mut songqueue : SongQueue = SongQueue::new();
+        let mut songqueue_state = ListState::default();
+        songqueue_state.select(None);
 
         let mut panel = SelectedPanel::SongList;
 
@@ -113,9 +113,9 @@ impl App {
                 let list = song_list_to_tui_list(&songlist.items);
                 let queue = queue_to_tui_list(&songqueue);
 
-                f.render_widget(queue, right_top_chunk);
+                f.render_stateful_widget(queue, right_top_chunk, &mut songqueue_state);
                 f.render_widget(block.clone(), right_bottom_chunk);
-                f.render_stateful_widget(list, center_chunk, &mut state);
+                f.render_stateful_widget(list, center_chunk, &mut songlist_state);
                 f.render_widget(block.clone(), center_top_chunk);
                 f.render_widget(nav_to_tui_list(&self.nav), left_chunk);
                 f.render_widget(song_detail(&self.player), bottom_chunk);
@@ -124,6 +124,7 @@ impl App {
             // read input
             let curr_panel : &mut dyn command::Command = match panel {
                 SelectedPanel::SongList => &mut songlist,
+                SelectedPanel::Queue => &mut songqueue,
                 _ => &mut songlist,
             };
 
@@ -132,6 +133,7 @@ impl App {
                 Ok(true) => {
                     match crossterm::event::read()? {
                         Event::Key(event) => {
+                            // commands for pannel
                             let command : command::Event = match event.code {
                                 KeyCode::Esc => {break;}, // breaks out of loop
                                 KeyCode::Up => command::Event::Up,
@@ -139,19 +141,33 @@ impl App {
                                 KeyCode::Enter => command::Event::Accept,
                                 KeyCode::Left => command::Event::Left,
                                 KeyCode::Right => command::Event::Right,
+                                _ => command::Event::N, // else do nothing
+                            };
+
+                            // signal panel with command
+                            response = curr_panel.command(&command);
+
+                            // commands for app
+                            match event.code {
                                 KeyCode::Char('p') => {
                                     self.player.stop().ok();
-                                    match songqueue.queue.get(0) {
+                                    let song = songqueue.queue.get(0);
+                                    match song {
                                         Some(x) => { 
                                             self.player.play(&x.path[..]).ok(); 
                                         },
                                         _ => {}
                                     }
-                                    command::Event::N
-                                }
-                                _ => command::Event::N, // else do nothing
-                            };
-                            response = curr_panel.command(&command);
+                                },
+                                KeyCode::Char('q') => {
+                                    panel = SelectedPanel::Queue;
+                                },
+                                KeyCode::Char('w') => {
+                                    panel = SelectedPanel::SongList;
+                                },
+                                _ => {}
+                            }
+
                             // println!("{:?}", event);
                         },
                         // Event::Mouse(event) => println!("{:?}", event),
@@ -178,8 +194,13 @@ impl App {
                 }
                 _ => {},
             }
-            // process commands
-            state.select(Some(songlist.get_selection() as usize));
+            songlist_state.select(Some(songlist.get_selection() as usize));
+            // songqueue_state.select(Some(songqueue.get_selection() as usize));
+            match songqueue.get_selection() {
+                Some(v) => songqueue_state.select(Some(v as usize)),
+                None => songqueue_state.select(None)
+            }
+
 
             thread::sleep(Duration::from_millis(20));
         }
@@ -244,12 +265,10 @@ fn song_detail(player : &player::Player) -> Gauge {
 
 pub fn create(songdb: SongDB) -> App {
     let player = player::new();
-    let queue : VecDeque<Song> = VecDeque::new();
     let nav: Navigator = Navigator::new(); 
     let app = App {
         songs: songdb,
         nav,
-        queue,
         player
     };
     return app;
