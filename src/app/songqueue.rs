@@ -81,6 +81,10 @@ impl SongQueue {
                 if new >= self.queue.len() as u32 {
                     new = 0;
                 }
+                self.currently_playing = match self.currently_playing {
+                    Some(_) => Some(new),
+                    None => None,
+                };
                 self.queue.swap(x as usize, new as usize);
                 Some(new)
             },
@@ -93,8 +97,12 @@ impl SongQueue {
             Some(x) => {
                 let mut new = x + 1;
                 if new >= self.queue.len() as u32 {
-                    new = self.queue.len() as u32;
+                    new = (self.queue.len() - 1) as u32;
                 }
+                self.currently_playing = match self.currently_playing {
+                    Some(_) => Some(new),
+                    None => None,
+                };
                 self.queue.swap(x as usize, new as usize);
                 Some(new)
             },
