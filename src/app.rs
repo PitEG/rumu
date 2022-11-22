@@ -188,10 +188,13 @@ impl App {
                         Response::PlaySong(s) => {
                             let _ = self.player.stop();
                             let _ = self.player.play(&s.path[..]);
-                        }
+                        },
                         Response::QueueSong(s) => {
                             songqueue.push(s);
-                        }
+                        },
+                        Response::StopSong => {
+                            let _ = self.player.stop();
+                        },
                         _ => {},
                     }
                 }

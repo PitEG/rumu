@@ -16,8 +16,12 @@ impl Command for SongQueue {
             Event::Down =>  { self.select_down(); None },
             Event::Back =>  { 
                 self.selection.and_then(|v| {
+                    let mut response = None;
                     self.remove(v as usize);
-                    None
+                    if self.currently_playing == None {
+                        response = Some(Response::StopSong);
+                    }
+                    response
                 })
             },
             Event::Left =>  { self.swap_up(); None }
@@ -132,7 +136,9 @@ impl SongQueue {
             self.currently_playing = match self.currently_playing {
                 Some(v) => {
                     let mut result = Some(v);
-                    if v > idx as u32 { result = Some(v - 1); }
+                    if v == idx as u32 {
+                        result = None;
+                    }
                     result
                 },
                 None => None,

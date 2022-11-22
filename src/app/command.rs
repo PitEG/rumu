@@ -16,6 +16,7 @@ pub enum Response {
     QueueSong(Song),
     PlaySong(Song),
     Query(Query),
+    StopSong,
 }
 
 pub trait Command {
