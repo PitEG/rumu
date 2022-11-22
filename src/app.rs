@@ -142,7 +142,7 @@ impl App {
                                 KeyCode::Left => command::Event::Left,
                                 KeyCode::Right => command::Event::Right,
                                 KeyCode::Backspace => command::Event::Back,
-                                _ => command::Event::N, // else do nothing
+                                _ => command::Event::Nothing, // else do nothing
                             };
 
                             // signal panel with command

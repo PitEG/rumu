@@ -9,7 +9,7 @@ pub enum Event {
     Right,
     Accept,
     Back,
-    N,
+    Nothing,
 }
 
 pub enum Response {

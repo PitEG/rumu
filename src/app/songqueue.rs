@@ -90,6 +90,13 @@ impl SongQueue {
         }
     }
 
+    // v is swapped to either a or b if it's b or a respectively, else keep value
+    fn swap_if_other(a: u32, b: u32, v: u32) -> u32 {
+        if v == b { return a; }
+        if v == a { return b; }
+        return v;
+    }
+
     pub fn swap_up(&mut self) {
         self.selection = match self.selection {
             Some(x) => {
@@ -98,7 +105,7 @@ impl SongQueue {
                     new = 0;
                 }
                 self.currently_playing = match self.currently_playing {
-                    Some(_) => Some(new),
+                    Some(v) => Some(SongQueue::swap_if_other(x,new,v)),
                     None => None,
                 };
                 self.queue.swap(x as usize, new as usize);
@@ -116,7 +123,7 @@ impl SongQueue {
                     new = (self.queue.len() - 1) as u32;
                 }
                 self.currently_playing = match self.currently_playing {
-                    Some(_) => Some(new),
+                    Some(v) => Some(SongQueue::swap_if_other(x,new,v)),
                     None => None,
                 };
                 self.queue.swap(x as usize, new as usize);
