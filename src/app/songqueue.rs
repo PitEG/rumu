@@ -11,28 +11,28 @@ pub struct SongQueue {
 
 impl Command for SongQueue {
     fn command(&mut self, event: &Event) -> Option<Response> {
-        match event {
-            Event::Up =>    { self.select_up(); },
-            Event::Down =>  { self.select_down(); },
+        return match event {
+            Event::Up =>    { self.select_up(); None },
+            Event::Down =>  { self.select_down(); None },
             Event::Back =>  { 
                 self.selection.and_then(|v| {
                     self.remove_song(v as usize);
-                    Some(())
-                });
+                    None
+                })
             },
-            Event::Left =>  { self.swap_up(); }
-            Event::Right =>  { self.swap_down(); }
+            Event::Left =>  { self.swap_up(); None }
+            Event::Right =>  { self.swap_down(); None }
             Event::Accept => { 
                 match self.selection {
                     Some(v) => {
-                        return Some(Response::PlaySong(self.queue[v as usize].clone()));
+                        self.currently_playing = Some(v);
+                        Some(Response::PlaySong(self.queue[v as usize].clone()))
                     },
-                    None => {},
+                    None => None,
                 }
             }
-            _ => {},
+            _ => None,
         }
-        return None;
     }
 }
 
@@ -119,8 +119,44 @@ impl SongQueue {
         self.queue.push_back(song);
     }
 
-    pub fn get_selection(&mut self) -> Option<u32> {
+    pub fn pop(&mut self) {
+        self.queue.pop_front();
+        match self.selection {
+            Some(mut v) => {
+                v -= 1;
+                self.selection = Some(v.clamp(0, self.queue.len() as u32));
+            },
+            None => {},
+        }
+    }
+
+    pub fn remove(&mut self, idx: u32) {
+        if idx < self.queue.len() as u32 {
+            self.queue.remove(idx as usize);
+            self.currently_playing = match self.currently_playing {
+                Some(v) => {
+                    let mut result = Some(v);
+                    if v > idx { result = Some(v - 1); }
+                    result
+                },
+                None => None,
+            }
+        }
+    }
+
+    pub fn get_selection(&self) -> Option<u32> {
         return self.selection;
+    }
+
+    pub fn get_currently_playing(&self) -> Option<u32> {
+        return self.currently_playing;
+    }
+
+    pub fn set_currently_playing(&mut self, idx: u32) {
+        if idx >= self.queue.len() as u32 {
+            return;
+        }
+        self.currently_playing = Some(idx);
     }
 
     pub fn new() -> SongQueue {

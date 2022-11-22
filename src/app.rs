@@ -155,6 +155,7 @@ impl App {
                                     match song {
                                         Some(x) => { 
                                             self.player.play(&x.path[..]).ok(); 
+                                            songqueue.set_currently_playing(0);
                                         },
                                         _ => {}
                                     }
@@ -184,6 +185,7 @@ impl App {
                 Some(r) => {
                     match r {
                         Response::PlaySong(s) => {
+                            let _ = self.player.stop();
                             let _ = self.player.play(&s.path[..]);
                         }
                         Response::QueueSong(s) => {
@@ -240,7 +242,14 @@ fn nav_to_tui_list(nav: &navigator::Navigator) -> List {
 }
 
 fn queue_to_tui_list(q : &songqueue::SongQueue) -> List {
-    let item_list : Vec<ListItem> = q.queue.iter().map(|x| ListItem::new(x.to_string())).collect();
+    let mut item_list : Vec<ListItem> = q.queue.iter().map(|x| ListItem::new(x.to_string())).collect();
+    match q.get_currently_playing() {
+        Some(v) => { 
+            let playing_item = item_list[v as usize].clone().style(Style::default().fg(Color::Green)); 
+            item_list[v as usize] = playing_item;
+        }
+        None => {},
+    }
     let list = List::new(item_list)
         .block(Block::default().title("list of stuf").borders(Borders::ALL))
         .style(Style::default().fg(Color::White))
