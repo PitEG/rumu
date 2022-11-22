@@ -141,6 +141,7 @@ impl App {
                                 KeyCode::Enter => command::Event::Accept,
                                 KeyCode::Left => command::Event::Left,
                                 KeyCode::Right => command::Event::Right,
+                                KeyCode::Backspace => command::Event::Back,
                                 _ => command::Event::N, // else do nothing
                             };
 

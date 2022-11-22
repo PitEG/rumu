@@ -16,7 +16,7 @@ impl Command for SongQueue {
             Event::Down =>  { self.select_down(); None },
             Event::Back =>  { 
                 self.selection.and_then(|v| {
-                    self.remove_song(v as usize);
+                    self.remove(v as usize);
                     None
                 })
             },
@@ -57,7 +57,13 @@ impl SongQueue {
                 }
                 Some(new)
             },
-            None => Some(0),
+            None => {
+                let mut selection = None;
+                if self.queue.len() > 0 {
+                    selection = Some(0);
+                }
+                selection
+            }
         }
     }
 
@@ -70,7 +76,13 @@ impl SongQueue {
                 }
                 Some(new)
             }
-            None => Some(0),
+            None => {
+                let mut selection = None;
+                if self.queue.len() > 0 {
+                    selection = Some(0);
+                }
+                selection
+            }
         }
     }
 
@@ -110,41 +122,32 @@ impl SongQueue {
         }
     }
 
-    pub fn remove_song(&mut self, idx: usize) {
-        self.queue.remove(idx);
-        self.selection = self.selection.and_then(|v| {
-            let queue_size = self.queue.len() as u32;
-            if v >= queue_size {
-                return Some(queue_size - 1);
-            }
-            else {
-                return Some(v);
-            }
-        });
-    }
-
     pub fn push(&mut self, song: Song) {
         self.queue.push_back(song);
     }
 
-    pub fn pop(&mut self) {
-        self.queue.pop_front();
-        match self.selection {
-            Some(mut v) => {
-                v -= 1;
-                self.selection = Some(v.clamp(0, self.queue.len() as u32));
-            },
-            None => {},
-        }
-    }
-
-    pub fn remove(&mut self, idx: u32) {
-        if idx < self.queue.len() as u32 {
+    pub fn remove(&mut self, idx: usize) {
+        if (idx as u32) < self.queue.len() as u32 {
             self.queue.remove(idx as usize);
             self.currently_playing = match self.currently_playing {
                 Some(v) => {
                     let mut result = Some(v);
-                    if v > idx { result = Some(v - 1); }
+                    if v > idx as u32 { result = Some(v - 1); }
+                    result
+                },
+                None => None,
+            };
+            self.selection = match self.selection {
+                Some(v) => {
+                    let mut result = Some(v);
+                    // case we deleted the last and only item
+                    if self.queue.len() == 0 {
+                        result = None
+                    }
+                    // case we deleted the item at the end
+                    else if v == self.queue.len() as u32 {
+                        result = Some(v - 1);
+                    } 
                     result
                 },
                 None => None,
