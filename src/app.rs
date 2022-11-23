@@ -15,6 +15,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
+use crate::songdb;
 use crate::songdb::SongDB;
 use crate::player;
 use crate::song::Song;
@@ -62,6 +63,10 @@ impl App {
         let mut navigator : Navigator = Navigator::new();
         let mut navigator_state = ListState::default();
         songqueue_state.select(None);
+
+        navigator.fill_category(0, &mut self.songs.get_table(songdb::Table::Album).unwrap());
+        navigator.fill_category(1, &mut self.songs.get_table(songdb::Table::Artist).unwrap());
+        navigator.fill_category(2, &mut self.songs.get_table(songdb::Table::Genre).unwrap());
 
         let mut panel = SelectedPanel::SongList;
 
@@ -245,7 +250,8 @@ fn nav_to_tui_list(nav: &navigator::Navigator) -> List {
     for i in &nav.items {
         item_list.push(ListItem::new(i.0.name.clone()));
         for j in &i.2 {
-            item_list.push(ListItem::new(j.clone()));
+            let s = format!("- {}", j.clone());
+            item_list.push(ListItem::new(s));
         }
     }
     // item_list.push(ListItem::new("something"));
