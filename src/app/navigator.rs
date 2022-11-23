@@ -1,14 +1,13 @@
 use crate::app::command::{Event,Command,Response};
 
-struct Category {
-    name: String,
-    table: String,
+pub struct Category {
+    pub name: String,
+    pub table: String,
 }
 
 pub struct Navigator {
-    items: Vec<(Category,bool,Vec<String>)>,
+    pub items: Vec<(Category,bool,Vec<String>)>,
     selection: (i32,Option<i32>),
-    search_query: Option<(String,String)>,
 }
 
 
@@ -17,33 +16,28 @@ impl Command for Navigator {
         // 
         // UP/DOWN: move selection
         //
-        match event {
-            Event::Up => {self.back()},
-            Event::Down => {self.next()},
-            _ => {},
+        return match event {
+            Event::Up => {self.back(); None },
+            Event::Down => {self.next(); None },
+            _ => None,
         };
-
-        return None;
     }
 }
 
 impl Navigator {
-    pub fn get_search(&mut self) -> Option<(String,String)> {
-        let search = match &self.search_query {
-            Some(x) => Some((x.0.clone(),x.1.clone())),
-            None => None,
-        };
-        self.search_query = None;
-        return search;
-    }
-
     pub fn get_selection(&self) -> (u32,Option<u32>) {
         return (self.selection.0 as u32, 
                 self.selection.1.and_then(|v| Some(v as u32)));
     }
 
-    fn size_of_category(&self, pos : usize) -> i32 {
+    pub fn size_of_category(&self, pos : usize) -> i32 {
         return self.items[pos].2.len() as i32;
+    }
+
+    pub fn fill_category(&mut self, idx : usize, content : &mut Vec<String>) {
+        if idx < self.items.len() {
+            self.items[idx].2.append(content);
+        }
     }
 
     fn next(&mut self) {
@@ -107,13 +101,35 @@ impl Navigator {
     }
 
     pub fn new() -> Navigator {
-        let items: Vec<(Category,bool,Vec<String>)> = Vec::new();
+        let mut items: Vec<(Category,bool,Vec<String>)> = Vec::new();
+        items.push((
+                Category {
+                    name: String::from("Album"),
+                    table: String::from("Album"),
+                },
+                true,
+                Vec::new()
+                ));
+        items.push((
+                Category {
+                    name: String::from("Artist"),
+                    table: String::from("Artist"),
+                },
+                true,
+                Vec::new()
+                ));
+        items.push((
+                Category {
+                    name: String::from("Genre"),
+                    table: String::from("Genre"),
+                },
+                true,
+                Vec::new()
+                ));
         let selection: (i32,Option<i32>) = (0,None);
-        let search_query: Option<(String,String)> = None;
         let nav = Navigator {
             items,
             selection,
-            search_query,
         };
         return nav;
     }

@@ -37,7 +37,6 @@ enum SelectedPanel {
 
 pub struct App {
     songs: SongDB,
-    nav: Navigator,
     player: player::Player
 }
 
@@ -49,7 +48,6 @@ impl App {
         execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
-
         
         let mut songlist : SongList = SongList::new(self.songs.search_all());
         songlist.order_items(SongOrder::Album);
@@ -59,6 +57,10 @@ impl App {
 
         let mut songqueue : SongQueue = SongQueue::new();
         let mut songqueue_state = ListState::default();
+        songqueue_state.select(None);
+
+        let mut navigator : Navigator = Navigator::new();
+        let mut navigator_state = ListState::default();
         songqueue_state.select(None);
 
         let mut panel = SelectedPanel::SongList;
@@ -117,7 +119,7 @@ impl App {
                 f.render_widget(block.clone(), right_bottom_chunk);
                 f.render_stateful_widget(list, center_chunk, &mut songlist_state);
                 f.render_widget(block.clone(), center_top_chunk);
-                f.render_widget(nav_to_tui_list(&self.nav), left_chunk);
+                f.render_widget(nav_to_tui_list(&navigator), left_chunk);
                 f.render_widget(song_detail(&self.player), bottom_chunk);
             })?;
 
@@ -125,6 +127,7 @@ impl App {
             let curr_panel : &mut dyn command::Command = match panel {
                 SelectedPanel::SongList => &mut songlist,
                 SelectedPanel::Queue => &mut songqueue,
+                SelectedPanel::Nav => &mut navigator,
                 _ => &mut songlist,
             };
 
@@ -167,6 +170,9 @@ impl App {
                                 KeyCode::Char('w') => {
                                     panel = SelectedPanel::SongList;
                                 },
+                                KeyCode::Tab => {
+                                    panel = SelectedPanel::Nav;
+                                },
                                 _ => {}
                             }
 
@@ -207,7 +213,6 @@ impl App {
                 None => songqueue_state.select(None)
             }
 
-
             thread::sleep(Duration::from_millis(20));
         }
 
@@ -237,7 +242,13 @@ fn song_list_to_tui_list(song_list : &Vec<Song>) -> List {
 
 fn nav_to_tui_list(nav: &navigator::Navigator) -> List {
     let mut item_list : Vec<ListItem> = Vec::new();
-    item_list.push(ListItem::new("something"));
+    for i in &nav.items {
+        item_list.push(ListItem::new(i.0.name.clone()));
+        for j in &i.2 {
+            item_list.push(ListItem::new(j.clone()));
+        }
+    }
+    // item_list.push(ListItem::new("something"));
     let list = List::new(item_list)
         .block(Block::default().title("list of stuf").borders(Borders::ALL))
         .style(Style::default().fg(Color::White))
@@ -278,10 +289,8 @@ fn song_detail(player : &player::Player) -> Gauge {
 
 pub fn create(songdb: SongDB) -> App {
     let player = player::new();
-    let nav: Navigator = Navigator::new(); 
     let app = App {
         songs: songdb,
-        nav,
         player
     };
     return app;
