@@ -50,7 +50,8 @@ impl App {
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
         
-        let mut songlist : SongList = SongList::new(self.songs.search_all());
+        // temporarily just doing a hardcoded search
+        let mut songlist : SongList = SongList::new(self.songs.search_any("guilty"));
         songlist.order_items(SongOrder::Album);
 
         let mut songlist_state = ListState::default();

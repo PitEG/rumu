@@ -269,6 +269,24 @@ impl SongDB {
         }
     }
 
+    pub fn search_any(&self, s : &str) -> Vec<Song> {
+        let s_any = format!("%{}%", s); //hmmmmmmmmmmmmmmmmmm this might just be gimmicky to bypass
+                                        //prepare sanitation... maybe
+        let mut statement = match self.connection.prepare(
+            "select * from song where album like :album or title like :title or artist like :artist")
+            .ok() {
+            Some(x) => x,
+            None => {return Vec::new()}
+        };
+        statement.bind_by_name(":album", &s_any[..]).ok();
+        statement.bind_by_name(":title", &s_any[..]).ok();
+        statement.bind_by_name(":artist", &s_any[..]).ok();
+        return match self.query(&mut statement) {
+            Some(x) => x,
+            None => {return Vec::new()}
+        }
+    }
+
     fn query(&self, statement : &mut sqlite::Statement) -> Option<Vec<Song>> {
         let mut song_list : Vec<Song> = Vec::new();
         while let sqlite::State::Row = statement.next().ok()? {
