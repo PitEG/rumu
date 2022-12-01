@@ -275,12 +275,28 @@ impl SongDB {
         let mut statement = match self.connection.prepare(
             "select * from song where album like :album or title like :title or artist like :artist")
             .ok() {
-            Some(x) => x,
-            None => {return Vec::new()}
-        };
+                Some(x) => x,
+                None => {return Vec::new()}
+            };
         statement.bind_by_name(":album", &s_any[..]).ok();
         statement.bind_by_name(":title", &s_any[..]).ok();
         statement.bind_by_name(":artist", &s_any[..]).ok();
+        return match self.query(&mut statement) {
+            Some(x) => x,
+            None => {return Vec::new()}
+        }
+    }
+
+    pub fn search_query(&self, q : &Query) -> Vec<Song> {
+        let mut statement = match self.connection.prepare(
+            "select * from song where album like :album or title like :title or artist like :artist")
+            .ok() {
+                Some(x) => x,
+                None => {return Vec::new()}
+            };
+        match &q.album { Some(v) => {statement.bind_by_name(":album", &v[..]).ok();}, None => {}}
+        match &q.title { Some(v) => {statement.bind_by_name(":title", &v[..]).ok();}, None => {}}
+        match &q.artist { Some(v) => {statement.bind_by_name(":artist", &v[..]).ok();}, None => {}}
         return match self.query(&mut statement) {
             Some(x) => x,
             None => {return Vec::new()}
