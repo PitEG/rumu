@@ -206,6 +206,9 @@ impl App {
                         Response::StopSong => {
                             let _ = self.player.stop();
                         },
+                        Response::Query(v) => {
+                            songlist = SongList::new(self.songs.search_any());
+                        },
                         _ => {},
                     }
                 }
