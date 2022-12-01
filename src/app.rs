@@ -124,7 +124,7 @@ impl App {
                 f.render_widget(block.clone(), right_bottom_chunk);
                 f.render_stateful_widget(list, center_chunk, &mut songlist_state);
                 f.render_widget(block.clone(), center_top_chunk);
-                f.render_widget(nav_to_tui_list(&navigator), left_chunk);
+                f.render_stateful_widget(nav_to_tui_list(&navigator), left_chunk, &mut navigator_state);
                 f.render_widget(song_detail(&self.player), bottom_chunk);
             })?;
 
@@ -217,6 +217,16 @@ impl App {
                 Some(v) => songqueue_state.select(Some(v as usize)),
                 None => songqueue_state.select(None)
             }
+            let mut nav_selection : u32 = 1;
+            for i in 0..navigator.get_selection().0 as usize {
+                nav_selection += 1;
+                nav_selection += navigator.items[i].2.len() as u32;
+            }
+            match navigator.get_selection().1 {
+                Some(v) => {nav_selection += v;},
+                None => {}, 
+            }
+            navigator_state.select(Some(nav_selection as usize));
 
             thread::sleep(Duration::from_millis(20));
         }

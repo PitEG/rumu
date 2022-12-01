@@ -1,3 +1,4 @@
+use std::cmp;
 use crate::app::command::{Event,Command,Response};
 
 pub struct Category {
@@ -7,7 +8,7 @@ pub struct Category {
 
 pub struct Navigator {
     pub items: Vec<(Category,bool,Vec<String>)>,
-    selection: (i32,Option<i32>),
+    selection: (u32,Option<u32>),
 }
 
 
@@ -19,19 +20,38 @@ impl Command for Navigator {
         return match event {
             Event::Up => {self.back(); None },
             Event::Down => {self.next(); None },
+            Event::Right => {self.next_category(); None },
+            Event::Left => {self.back_category(); None },
             _ => None,
         };
     }
 }
 
 impl Navigator {
-    pub fn get_selection(&self) -> (u32,Option<u32>) {
-        return (self.selection.0 as u32, 
-                self.selection.1.and_then(|v| Some(v as u32)));
+    pub fn back(&mut self) {
+        let cat_size = self.items.get(self.selection.0 as usize).unwrap().2.len();
+        self.selection.1 = match self.selection.1 {
+            Some(v) => Some(cmp::min(v.wrapping_sub(1), cat_size as u32 - 1)),
+            None => Some(0),
+        };
     }
 
-    pub fn size_of_category(&self, pos : usize) -> i32 {
-        return self.items[pos].2.len() as i32;
+    pub fn next(&mut self) {
+        let cat_size = self.items.get(self.selection.0 as usize).unwrap().2.len();
+        self.selection.1 = match self.selection.1 {
+            Some(v) => Some((v + 1).clamp(0,cat_size as u32 - 1)),
+            None => Some(0),
+        };
+    }
+
+    pub fn back_category(&mut self) {
+        self.selection.0 = cmp::min(self.selection.0.wrapping_sub(1), self.items.len() as u32 - 1);
+        self.selection.1 = Some(0);
+    }
+
+    pub fn next_category(&mut self) {
+        self.selection.0 = (self.selection.0 + 1).clamp(0, self.items.len() as u32 - 1);
+        self.selection.1 = Some(0);
     }
 
     pub fn fill_category(&mut self, idx : usize, content : &mut Vec<String>) {
@@ -40,64 +60,8 @@ impl Navigator {
         }
     }
 
-    fn next(&mut self) {
-        self.selection.1 = match self.selection.1 {
-            Some(v) => {
-                // subcat -> subcat
-                let mut result = Some(v + 1);
-                // subcat -> cat
-                if (v + 1) > self.size_of_category(self.selection.0 as usize) {
-                    self.selection.0 += 1;
-                    self.selection.0 %= self.items.len() as i32;
-                    result = None;
-                }
-                result
-            },
-            None => {
-                let mut result = None;
-                // cat -> subcat
-                if self.items[self.selection.0 as usize].1 { // if open
-                    result = Some(0);
-                }
-                // cat -> cat
-                else {
-                    self.selection.0 += 1;
-                    self.selection.0 %= self.items.len() as i32;
-                }
-                result
-            },
-        };
-    }
-
-    fn back(&mut self) {
-        self.selection.1 = match self.selection.1 {
-            Some(v) => {
-                // subcat -> subcat
-                let mut result = Some(v - 1);
-                // subcat -> cat
-                if (v - 1) < 0 {
-                    self.selection.0 -= 1;
-                    if self.selection.0 < 0 {
-                        self.selection.0 = self.items.len() as i32;
-                    }
-                    result = None
-                }
-                result
-            }
-            None => {
-                let mut result = None;
-                self.selection.0 -= 1;
-                if self.selection.0 < 0 {
-                    self.selection.0 = self.items.len() as i32;
-                }
-                // cat -> subcat
-                if self.items[self.selection.0 as usize].1 {
-                    result = Some(self.size_of_category(self.selection.0 as usize) - 1);
-                }
-                // cat -> cat // default when the above if block doesn't run
-                result
-            },
-        }
+    pub fn get_selection(&self) -> (u32,Option<u32>) {
+        return self.selection;
     }
 
     pub fn new() -> Navigator {
@@ -126,7 +90,7 @@ impl Navigator {
                 true,
                 Vec::new()
                 ));
-        let selection: (i32,Option<i32>) = (0,None);
+        let selection: (u32,Option<u32>) = (0,None);
         let nav = Navigator {
             items,
             selection,
