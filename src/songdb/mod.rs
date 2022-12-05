@@ -107,6 +107,7 @@ pub enum Table {
     TrackNum,
     Artist,
     Genre,
+    Duration,
     Year,
     Hash,
     Path,
@@ -122,6 +123,7 @@ impl ToString for Table {
             Table::TrackNum => String::from("tracknumber"),
             Table::Artist   => String::from("artist"),
             Table::Genre    => String::from("genre"),
+            Table::Duration => String::from("duration"),
             Table::Year     => String::from("year"),
             Table::Hash     => String::from("hash"),
             Table::Path     => String::from("path"),
@@ -140,12 +142,13 @@ impl SongDB {
     // add a song to the database
     pub fn add(&self, song: &Song) -> Result<(),sqlite::Error>{
         // insert into song relation
-        let mut statement = self.connection.prepare("insert into song values (:title,:album,:tracknum,:artist,:genre,:year,:path,:hash,:size)")?;
+        let mut statement = self.connection.prepare("insert into song values (:title,:album,:tracknum,:artist,:genre,:duration,:year,:path,:hash,:size)")?;
         statement.bind_by_name(":title", &song.title[..])?;
         statement.bind_by_name(":album", &song.album[..])?;
         statement.bind_by_name(":tracknum", song.track_num)?;
         statement.bind_by_name(":artist", &song.artist[..])?;
         statement.bind_by_name(":genre", &song.genre[..])?;
+        statement.bind_by_name(":duration", song.duration)?;
         statement.bind_by_name(":year", song.year)?;
         // statement.bind_by_name(":hash", &song.hash[..])?;
         let hash = song::song_hash(&song.path[..]).ok().unwrap_or(String::from("")); // not safe
@@ -182,12 +185,13 @@ impl SongDB {
 
     pub fn update(&self, title: &str, album: &str, song: &Song) -> Result<(),sqlite::Error>{
         // insert into song relation
-        let mut statement = self.connection.prepare("update song set TrackNumber = :tracknum, Artist = :artist, Genre = :genre, Year = :year, Path = :path, Version = :hash, Size = :size where Title = :title and Album = :album")?;
+        let mut statement = self.connection.prepare("update song set TrackNumber = :tracknum, Artist = :artist, Genre = :genre, Duration = :duration Year = :year, Path = :path, Version = :hash, Size = :size where Title = :title and Album = :album")?;
         statement.bind_by_name(":title", &title[..])?;
         statement.bind_by_name(":album", &album[..])?;
         statement.bind_by_name(":tracknum", song.track_num)?;
         statement.bind_by_name(":artist", &song.artist[..])?;
         statement.bind_by_name(":genre", &song.genre[..])?;
+        statement.bind_by_name(":duration", song.duration)?;
         statement.bind_by_name(":year", song.year)?;
         statement.bind_by_name(":hash", &song.hash[..])?;
         statement.bind_by_name(":path", &song.path[..])?;
@@ -311,10 +315,11 @@ impl SongDB {
            let track_num = statement.read::<i64>(2).ok()?; 
            let artist = statement.read::<String>(3).ok()?; 
            let genre = statement.read::<String>(4).ok()?; 
-           let year = statement.read::<i64>(5).ok()?; 
-           let path = statement.read::<String>(6).ok()?; 
-           let hash = statement.read::<String>(7).ok()?; 
-           let size = statement.read::<i64>(8).ok()?; 
+           let duration = statement.read::<f64>(5).ok()?;
+           let year = statement.read::<i64>(6).ok()?; 
+           let path = statement.read::<String>(7).ok()?; 
+           let hash = statement.read::<String>(8).ok()?; 
+           let size = statement.read::<i64>(9).ok()?; 
            let song = Song{
                title,
                album,
@@ -322,7 +327,7 @@ impl SongDB {
                genre,
                year, 
                track_num,
-               duration: 0., // currently not saved
+               duration,
                path,
                lyrics: String::from("placeholder"), // currently not querying in this function 
                hash,
@@ -389,7 +394,7 @@ pub fn open(db_path: &str) -> Result<SongDB,sqlite::Error> {
     };
     songdb.connection.execute(
         "
-        create table if not exists song (Title TEXT, Album TEXT, TrackNumber INTEGER, Artist TEXT, Genre TEXT, Year INTEGER, Path TEXT, Version CHAR(16), Size INTEGER,
+        create table if not exists song (Title TEXT, Album TEXT, TrackNumber INTEGER, Artist TEXT, Genre TEXT, Duration DECIMAL, Year INTEGER, Path TEXT, Version CHAR(16), Size INTEGER,
             CONSTRAINT PK_Song PRIMARY KEY (Title, Album));
         create table if not exists lyrics (Title TEXT NOT NULL, Album TEXT NOT NULL, Lyrics TEXT,
             FOREIGN KEY(Title) REFERENCES songs(Title),
