@@ -4,9 +4,11 @@ use std::{
     time::Duration};
 use tui::{
     backend::CrosstermBackend,
-    widgets::{Block, Borders, List, ListState, ListItem, Gauge},
-    layout::{Layout, Constraint, Direction},
+    widgets::{Paragraph, Block, Borders, List, ListState, ListItem, Gauge, LineGauge},
+    layout::{Layout, Constraint, Direction, Rect},
     style::{Style, Color, Modifier}, 
+    text::Text,
+    terminal::Frame,
     Terminal
 };
 use crossterm::{
@@ -72,63 +74,6 @@ impl App {
         let mut panel = SelectedPanel::SongList;
 
         loop {
-            // draw 
-            terminal.draw(|f| {
-
-                let main_chunk = Layout::default()
-                    .direction(Direction::Vertical)
-                    .margin(0)
-                    .constraints([
-                        Constraint::Percentage(85),
-                        Constraint::Percentage(15)
-                        ].as_ref())
-                    .split(f.size());
-                let top_chunk = Layout::default()
-                    .direction(Direction::Horizontal)
-                    .margin(0)
-                    .constraints([
-                                 Constraint::Percentage(20),
-                                 Constraint::Percentage(60),
-                                 Constraint::Percentage(20),
-                        ].as_ref())
-                    .split(main_chunk[0]);
-                let right_chunk = Layout::default()
-                    .direction(Direction::Vertical)
-                    .margin(0)
-                    .constraints([
-                                 Constraint::Percentage(60),
-                                 Constraint::Percentage(40),
-                    ].as_ref())
-                    .split(top_chunk[2]);
-                let middle_chunk = Layout::default()
-                    .direction(Direction::Vertical)
-                    .margin(0)
-                    .constraints([
-                                 Constraint::Min(3),
-                                 Constraint::Percentage(100)
-                    ].as_ref())
-                    .split(top_chunk[1]);
-                let center_top_chunk = middle_chunk[0];
-                let center_chunk = middle_chunk[1];
-                let left_chunk = top_chunk[0];
-                let right_top_chunk = right_chunk[0];
-                let right_bottom_chunk = right_chunk[1];
-                let bottom_chunk = main_chunk[1];
-                let block = Block::default()
-                    .title("Block")
-                    .borders(Borders::ALL);
-
-                let list = song_list_to_tui_list(&songlist.items);
-                let queue = queue_to_tui_list(&songqueue);
-
-                f.render_stateful_widget(queue, right_top_chunk, &mut songqueue_state);
-                f.render_widget(block.clone(), right_bottom_chunk);
-                f.render_stateful_widget(list, center_chunk, &mut songlist_state);
-                f.render_widget(block.clone(), center_top_chunk);
-                f.render_stateful_widget(nav_to_tui_list(&navigator), left_chunk, &mut navigator_state);
-                f.render_widget(song_detail(&self.player), bottom_chunk);
-            })?;
-
             // read input
             let curr_panel : &mut dyn command::Command = match panel {
                 SelectedPanel::SongList => &mut songlist,
@@ -233,6 +178,66 @@ impl App {
             }
             navigator_state.select(Some(nav_selection as usize));
 
+            // draw 
+            terminal.draw(|f| {
+                let main_chunk = Layout::default()
+                    .direction(Direction::Vertical)
+                    .margin(0)
+                    .constraints([
+                        Constraint::Percentage(85),
+                        Constraint::Percentage(15)
+                        ].as_ref())
+                    .split(f.size());
+                let top_chunk = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .margin(0)
+                    .constraints([
+                                 Constraint::Percentage(20),
+                                 Constraint::Percentage(60),
+                                 Constraint::Percentage(20),
+                        ].as_ref())
+                    .split(main_chunk[0]);
+                let right_chunk = Layout::default()
+                    .direction(Direction::Vertical)
+                    .margin(0)
+                    .constraints([
+                                 Constraint::Percentage(60),
+                                 Constraint::Percentage(40),
+                    ].as_ref())
+                    .split(top_chunk[2]);
+                let middle_chunk = Layout::default()
+                    .direction(Direction::Vertical)
+                    .margin(0)
+                    .constraints([
+                                 Constraint::Min(3),
+                                 Constraint::Percentage(100)
+                    ].as_ref())
+                    .split(top_chunk[1]);
+                let center_top_chunk = middle_chunk[0];
+                let center_chunk = middle_chunk[1];
+                let left_chunk = top_chunk[0];
+                let right_top_chunk = right_chunk[0];
+                let right_bottom_chunk = right_chunk[1];
+                let bottom_chunk = main_chunk[1];
+                let block = Block::default()
+                    .title("Block")
+                    .borders(Borders::ALL);
+
+                let list = song_list_to_tui_list(&songlist.items);
+                let queue = queue_to_tui_list(&songqueue);
+
+                f.render_stateful_widget(queue, right_top_chunk, &mut songqueue_state);
+                f.render_widget(block.clone(), right_bottom_chunk);
+                f.render_stateful_widget(list, center_chunk, &mut songlist_state);
+                f.render_widget(block.clone(), center_top_chunk);
+                f.render_stateful_widget(nav_to_tui_list(&navigator), left_chunk, &mut navigator_state);
+                let current_song_title = match songqueue.get_currently_playing_song() {
+                    Some(s) => String::from(s.title),
+                    None => String::from("no song atm"),
+                };
+                draw_song_detail(f, bottom_chunk, &self.player, &current_song_title[..]);
+            })?;
+
             thread::sleep(Duration::from_millis(20));
         }
 
@@ -293,19 +298,45 @@ fn queue_to_tui_list(q : &songqueue::SongQueue) -> List {
     return list;
 }
 
-fn song_detail(player : &player::Player) -> Gauge {
+fn song_detail(player : &player::Player) -> LineGauge {
     let time_left = player.get_time_left();
     let duration = player.get_song_duration();
     let mut fraction_played = (1.0 - time_left / duration).clamp(0.0,1.0);
     if fraction_played.is_nan() {
         fraction_played = 0.0;
     }
-    let gauge = Gauge::default()
-        .block(Block::default().borders(Borders::ALL).title("Progress"))
+    let gauge = LineGauge::default()
+        .block(Block::default().title("Progress"))
         .gauge_style(Style::default().fg(Color::White).bg(Color::Black).add_modifier(Modifier::ITALIC))
         .ratio(fraction_played);
     // let gauge = Paragraph::new(Text::from(fraction_played.to_string()));
     return gauge;
+}
+
+fn draw_song_detail(
+    f : &mut Frame<CrosstermBackend<std::io::Stdout>>, 
+    rect : Rect,
+    player : &player::Player,
+    song_name : &str) {
+    // render container
+    f.render_widget(Block::default().borders(Borders::ALL).title("song info"),rect);
+
+    // split container
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(1)
+        .constraints([
+                     Constraint::Min(3),
+                     Constraint::Percentage(100)
+        ].as_ref())
+        .split(rect);
+
+    // render song info
+    let song_name_paragraph = Paragraph::new(Text::from(song_name));
+    f.render_widget(song_name_paragraph, chunks[0]);
+
+    // render song progress
+    f.render_widget(song_detail(player), chunks[1]);
 }
 
 pub fn create(songdb: SongDB) -> App {

@@ -52,6 +52,17 @@ impl SongQueue {
         }
     }
 
+    pub fn get_currently_playing_song(&self) -> Option<Song> {
+        let i = match self.currently_playing {
+            Some(v) => v,
+            None => { return None },
+        };
+        return match self.queue.get(i as usize) {
+            Some(s) => Some(s.clone()),
+            None => None,
+        }
+    }
+
     pub fn select_down(&mut self) {
         self.selection = match self.selection {
             Some(x) => {
