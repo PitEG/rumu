@@ -31,6 +31,7 @@ mod command;
 mod songlist;
 mod songqueue;
 
+#[derive(PartialEq)]
 enum SelectedPanel {
     SongList,
     Nav,
@@ -223,14 +224,14 @@ impl App {
                     .title("Block")
                     .borders(Borders::ALL);
 
-                let list = song_list_to_tui_list(&songlist.items);
-                let queue = queue_to_tui_list(&songqueue);
+                let list = song_list_to_tui_list(&songlist.items, panel == SelectedPanel::SongList);
+                let queue = queue_to_tui_list(&songqueue, panel == SelectedPanel::Queue);
 
                 f.render_stateful_widget(queue, right_top_chunk, &mut songqueue_state);
                 f.render_widget(block.clone(), right_bottom_chunk);
                 f.render_stateful_widget(list, center_chunk, &mut songlist_state);
                 f.render_widget(block.clone(), center_top_chunk);
-                f.render_stateful_widget(nav_to_tui_list(&navigator), left_chunk, &mut navigator_state);
+                f.render_stateful_widget(nav_to_tui_list(&navigator, panel == SelectedPanel::Nav), left_chunk, &mut navigator_state);
                 let current_song_title = match songqueue.get_currently_playing_song() {
                     Some(s) => String::from(s.title),
                     None => String::from("no song atm"),
@@ -254,18 +255,19 @@ impl App {
     }
 }
 
-fn song_list_to_tui_list(song_list : &Vec<Song>) -> List {
+fn song_list_to_tui_list(song_list : &Vec<Song>, selected: bool) -> List {
     // let mut song_list = self.songs.search_all();
     // song_list.sort_by(|a,b| a.album.cmp(&b.album));
     let item_list : Vec<ListItem> = song_list.iter().map(|x| ListItem::new(x.to_string())).collect();
+    let color = if selected { Color::Yellow } else { Color::White };
     let list = List::new(item_list)
-        .block(Block::default().title("list of stuf").borders(Borders::ALL))
+        .block(Block::default().title("list of stuf").borders(Borders::ALL).border_style(Style::default().fg(color)))
         .style(Style::default().fg(Color::White))
         .highlight_symbol(">>");
     return list;
 }
 
-fn nav_to_tui_list(nav: &navigator::Navigator) -> List {
+fn nav_to_tui_list(nav: &navigator::Navigator, selected: bool) -> List {
     let mut item_list : Vec<ListItem> = Vec::new();
     for i in &nav.items {
         item_list.push(ListItem::new(i.0.name.clone()));
@@ -275,14 +277,15 @@ fn nav_to_tui_list(nav: &navigator::Navigator) -> List {
         }
     }
     // item_list.push(ListItem::new("something"));
+    let color = if selected { Color::Yellow } else { Color::White };
     let list = List::new(item_list)
-        .block(Block::default().title("list of stuf").borders(Borders::ALL))
+        .block(Block::default().title("list of stuf").borders(Borders::ALL).border_style(Style::default().fg(color)))
         .style(Style::default().fg(Color::White))
         .highlight_symbol(">>");
     return list;
 }
 
-fn queue_to_tui_list(q : &songqueue::SongQueue) -> List {
+fn queue_to_tui_list(q : &songqueue::SongQueue, selected: bool) -> List {
     let mut item_list : Vec<ListItem> = q.queue.iter().map(|x| ListItem::new(x.to_string())).collect();
     match q.get_currently_playing() {
         Some(v) => { 
@@ -291,8 +294,9 @@ fn queue_to_tui_list(q : &songqueue::SongQueue) -> List {
         }
         None => {},
     }
+    let color = if selected { Color::Yellow } else { Color::White };
     let list = List::new(item_list)
-        .block(Block::default().title("list of stuf").borders(Borders::ALL))
+        .block(Block::default().title("list of stuf").borders(Borders::ALL).border_style(Style::default().fg(color)))
         .style(Style::default().fg(Color::White))
         .highlight_symbol(">>");
     return list;
