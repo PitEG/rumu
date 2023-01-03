@@ -2,7 +2,6 @@ use mpv::{MpvHandler, MpvHandlerBuilder, MpvFormat};
 
 pub struct Player {
     backend: MpvHandler,
-    queue: Vec<String>,
 }
 
 pub fn new() -> Player {
@@ -10,8 +9,7 @@ pub fn new() -> Player {
     handler.set_option("vid","no").expect("");
     let handler = handler.build().expect("");
     let player = Player {
-        backend: handler,
-        queue: Vec::new(),
+        backend: handler
     };
     
     return player;
@@ -40,7 +38,8 @@ impl Player {
         match self.backend.wait_event(0.001) {
             Some(v) => {
                 match v {
-                    mpv::Event::Idle => { return true },
+                    // mpv::Event::Idle => { return true },
+                    mpv::Event::EndFile(_) => { return true },
                     _ => { return false },
                 }
             },

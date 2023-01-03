@@ -179,6 +179,15 @@ impl App {
             }
             navigator_state.select(Some(nav_selection as usize));
 
+            // check if player is done with song, play next if there is one
+            if self.player.is_song_finished() {
+                songqueue.pop_currently_playing();
+                match songqueue.get_currently_playing_song() {
+                    Some(s) => { let _ = self.player.play(&s.path[..]); }
+                    None => {},
+                }
+            }
+
             // draw 
             terminal.draw(|f| {
                 let main_chunk = Layout::default()

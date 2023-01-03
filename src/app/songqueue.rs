@@ -194,6 +194,16 @@ impl SongQueue {
         self.currently_playing = Some(idx);
     }
 
+    pub fn pop_currently_playing(&mut self) {
+        match self.currently_playing {
+            Some(x) => {
+                self.remove(x as usize);
+                self.set_currently_playing(x);
+            },
+            None => {},
+        }
+    }
+
     pub fn new() -> SongQueue {
         let q = SongQueue {
             queue: VecDeque::new(),
