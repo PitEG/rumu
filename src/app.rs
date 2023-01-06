@@ -12,7 +12,7 @@ use tui::{
     Terminal
 };
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -93,47 +93,55 @@ impl App {
                 Ok(true) => {
                     match crossterm::event::read()? {
                         Event::Key(event) => {
-                            // commands for pannel
-                            let command : command::Event = match event.code {
-                                KeyCode::Esc => {break;}, // breaks out of loop
-                                KeyCode::Up => command::Event::Up,
-                                KeyCode::Down => command::Event::Down,
-                                KeyCode::Enter => command::Event::Accept,
-                                KeyCode::Left => command::Event::Left,
-                                KeyCode::Right => command::Event::Right,
-                                KeyCode::Backspace => command::Event::Back,
-                                KeyCode::Char(c) => command::Event::Char(c),
-                                _ => command::Event::Nothing, // else do nothing
-                            };
-
-                            // signal panel with command
-                            response = curr_panel.command(&command);
-
-                            // commands for app
-                            match event.code {
-                                KeyCode::Char('p') => {
-                                    self.player.stop().ok();
-                                    let song = songqueue.queue.get(0);
-                                    match song {
-                                        Some(x) => { 
-                                            self.player.play(&x.path[..]).ok(); 
-                                            songqueue.set_currently_playing(0);
+                            match event.modifiers {
+                                KeyModifiers::CONTROL => {
+                                    match event.code {
+                                        KeyCode::Char('p') => {
+                                            self.player.stop().ok();
+                                            let song = songqueue.queue.get(0);
+                                            match song {
+                                                Some(x) => { 
+                                                    self.player.play(&x.path[..]).ok(); 
+                                                    songqueue.set_currently_playing(0);
+                                                },
+                                                _ => {}
+                                            }
                                         },
+                                        KeyCode::Char('q') => {
+                                            panel = SelectedPanel::Queue;
+                                        },
+                                        KeyCode::Char('w') => {
+                                            panel = SelectedPanel::SongList;
+                                        },
+                                        KeyCode::Char('s') => {
+                                            panel = SelectedPanel::Search;
+                                        }
                                         _ => {}
                                     }
                                 },
-                                KeyCode::Char('q') => {
-                                    panel = SelectedPanel::Queue;
-                                },
-                                KeyCode::Char('w') => {
-                                    panel = SelectedPanel::SongList;
-                                },
-                                KeyCode::Char('s') => {
-                                    panel = SelectedPanel::Search;
+                                KeyModifiers::NONE => {
+                                    // command 
+                                    let command : command::Event = match event.code {
+                                        KeyCode::Esc => {break;}, // breaks out of loop
+                                        KeyCode::Up => command::Event::Up,
+                                        KeyCode::Down => command::Event::Down,
+                                        KeyCode::Enter => command::Event::Accept,
+                                        KeyCode::Left => command::Event::Left,
+                                        KeyCode::Right => command::Event::Right,
+                                        KeyCode::Backspace => command::Event::Back,
+                                        KeyCode::Char(c) => command::Event::Char(c),
+                                        _ => command::Event::Nothing, // else do nothing
+                                    };
+
+                                    response = curr_panel.command(&command);
+
+                                    match event.code {
+                                        KeyCode::Tab => {
+                                            panel = SelectedPanel::Nav;
+                                        },
+                                        _ => {}
+                                    }
                                 }
-                                KeyCode::Tab => {
-                                    panel = SelectedPanel::Nav;
-                                },
                                 _ => {}
                             }
 
@@ -207,9 +215,9 @@ impl App {
                     .direction(Direction::Vertical)
                     .margin(0)
                     .constraints([
-                        Constraint::Percentage(85),
-                        Constraint::Percentage(15)
-                        ].as_ref())
+                                 Constraint::Percentage(85),
+                                 Constraint::Percentage(15)
+                    ].as_ref())
                     .split(f.size());
                 let top_chunk = Layout::default()
                     .direction(Direction::Horizontal)
@@ -218,7 +226,7 @@ impl App {
                                  Constraint::Percentage(20),
                                  Constraint::Percentage(60),
                                  Constraint::Percentage(20),
-                        ].as_ref())
+                    ].as_ref())
                     .split(main_chunk[0]);
                 let right_chunk = Layout::default()
                     .direction(Direction::Vertical)

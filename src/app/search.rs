@@ -12,7 +12,10 @@ impl Command for Search {
                 self.query.push(*c);
             },
             Event::Back => {
-                let clamped_slice = cmp::max(self.query.len()-1,0);
+                let clamped_slice = match (self.query.len() as usize).checked_sub(1) {
+                    Some(v) => v,
+                    None => 0,
+                };
                 self.query = self.query[0..clamped_slice].to_string();
             },
             Event::Accept => {
