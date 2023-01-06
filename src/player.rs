@@ -1,4 +1,4 @@
-use mpv::{MpvHandler, MpvHandlerBuilder, MpvFormat};
+use mpv::{MpvHandler, MpvHandlerBuilder, EndFileReason};
 
 pub struct Player {
     backend: MpvHandler,
@@ -39,7 +39,14 @@ impl Player {
             Some(v) => {
                 match v {
                     // mpv::Event::Idle => { return true },
-                    mpv::Event::EndFile(_) => { return true },
+                    mpv::Event::EndFile(result) => { 
+                        match result {
+                            Ok(EndFileReason::MPV_END_FILE_REASON_EOF) => {
+                                return true;
+                            },
+                            _ => return false,
+                        }
+                    },
                     _ => { return false },
                 }
             },
