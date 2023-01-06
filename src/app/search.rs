@@ -10,6 +10,7 @@ impl Command for Search {
         match event {
             Event::Char(c) => {
                 self.query.push(*c);
+                return Some(Response::QueryAny(self.query.clone()));
             },
             Event::Back => {
                 let clamped_slice = match (self.query.len() as usize).checked_sub(1) {
@@ -17,6 +18,7 @@ impl Command for Search {
                     None => 0,
                 };
                 self.query = self.query[0..clamped_slice].to_string();
+                return Some(Response::QueryAny(self.query.clone()));
             },
             Event::Accept => {
                 return Some(Response::QueryAny(self.query.clone()));
