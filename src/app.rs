@@ -25,11 +25,13 @@ use crate::app::navigator::{Navigator};
 use crate::app::songlist::{SongList, SongOrder};
 use crate::app::command::{Command,Response};
 use crate::app::songqueue::SongQueue;
+use crate::app::search::Search;
 
 mod navigator;
 mod command;
 mod songlist;
 mod songqueue;
+mod search;
 
 #[derive(PartialEq)]
 enum SelectedPanel {
@@ -72,6 +74,8 @@ impl App {
         navigator.fill_category(1, &mut self.songs.get_table(songdb::Table::Artist).unwrap());
         navigator.fill_category(2, &mut self.songs.get_table(songdb::Table::Genre).unwrap());
 
+        let mut searchbar : Search = Search::new();
+
         let mut panel = SelectedPanel::SongList;
 
         loop {
@@ -80,6 +84,7 @@ impl App {
                 SelectedPanel::SongList => &mut songlist,
                 SelectedPanel::Queue => &mut songqueue,
                 SelectedPanel::Nav => &mut navigator,
+                SelectedPanel::Search => &mut searchbar,
                 _ => &mut songlist,
             };
 
@@ -97,6 +102,7 @@ impl App {
                                 KeyCode::Left => command::Event::Left,
                                 KeyCode::Right => command::Event::Right,
                                 KeyCode::Backspace => command::Event::Back,
+                                KeyCode::Char(c) => command::Event::Char(c),
                                 _ => command::Event::Nothing, // else do nothing
                             };
 
@@ -122,6 +128,9 @@ impl App {
                                 KeyCode::Char('w') => {
                                     panel = SelectedPanel::SongList;
                                 },
+                                KeyCode::Char('s') => {
+                                    panel = SelectedPanel::Search;
+                                }
                                 KeyCode::Tab => {
                                     panel = SelectedPanel::Nav;
                                 },
@@ -239,13 +248,14 @@ impl App {
                 f.render_stateful_widget(queue, right_top_chunk, &mut songqueue_state);
                 f.render_widget(block.clone(), right_bottom_chunk);
                 f.render_stateful_widget(list, center_chunk, &mut songlist_state);
-                f.render_widget(block.clone(), center_top_chunk);
+                // f.render_widget(block.clone(), center_top_chunk);
                 f.render_stateful_widget(nav_to_tui_list(&navigator, panel == SelectedPanel::Nav), left_chunk, &mut navigator_state);
                 let current_song_title = match songqueue.get_currently_playing_song() {
                     Some(s) => String::from(s.title),
                     None => String::from("no song atm"),
                 };
                 draw_song_detail(f, bottom_chunk, &self.player, &current_song_title[..]);
+                draw_search(f, center_top_chunk, &searchbar.query[..], panel == SelectedPanel::Search);
             })?;
 
             thread::sleep(Duration::from_millis(20));
@@ -350,6 +360,17 @@ fn draw_song_detail(
 
     // render song progress
     f.render_widget(song_detail(player), chunks[1]);
+}
+
+fn draw_search(
+    f : &mut Frame<CrosstermBackend<std::io::Stdout>>, 
+    rect : Rect,
+    query: &str,
+    selected: bool) {
+    let color = if selected { Color::Yellow } else { Color::White };
+    let search_paragraph = Paragraph::new(Text::from(query))
+        .block(Block::default().title("search").borders(Borders::ALL).border_style(Style::default().fg(color)));
+    f.render_widget(search_paragraph, rect);
 }
 
 pub fn create(songdb: SongDB) -> App {
