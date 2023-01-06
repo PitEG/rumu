@@ -166,6 +166,10 @@ impl App {
                             songlist = SongList::new(self.songs.search_query(&v));
                             songlist.order_items(SongOrder::Album);
                         },
+                        Response::QueryAny(s) => {
+                            songlist = SongList::new(self.songs.search_any(&s));
+                            songlist.order_items(SongOrder::Album);
+                        }
                         _ => {},
                     }
                 }

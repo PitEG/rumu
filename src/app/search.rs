@@ -16,7 +16,7 @@ impl Command for Search {
                 self.query = self.query[0..clamped_slice].to_string();
             },
             Event::Accept => {
-                return Some(Response::QueryAll(self.query.clone()));
+                return Some(Response::QueryAny(self.query.clone()));
             }
             _ => {}
         }

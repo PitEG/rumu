@@ -16,7 +16,7 @@ pub enum Response {
     QueueSong(Song),
     PlaySong(Song),
     Query(Query),
-    QueryAll(String),
+    QueryAny(String),
     StopSong,
 }
 
