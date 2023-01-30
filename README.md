@@ -1,5 +1,7 @@
 # Playing Music With The Terminal!
 
+![screenshot of the software](./screenshots/v1.png)
+
 ## Installation
 
 requires rustc
