@@ -90,7 +90,7 @@ pub fn get_meta_dir(dir: &str) -> Vec<Song> {
         // get_meta() is an expensive function
         let meta : Song = match get_meta(entry.path().to_str().unwrap()) {
             Ok(m) => {
-                println!("successful!");
+                // println!("successful!");
                 m
             },
             Err(_) => continue, 
@@ -227,10 +227,10 @@ impl SongDB {
         let mut missing : Vec<(String,String)> = vec![];
         for song in songs {
             match fs::metadata(song.2) {
-                Ok(_) => println!("it's there"),
+                Ok(_) => {/*println!("it's there")*/},
                 Err(_) => {
                     missing.push((song.0,song.1));
-                    println!("not there");
+                    //println!("not there");
                 }
             };
         }

@@ -30,13 +30,13 @@ fn main() {
     
     // search songs 
     let songs = songdb::get_meta_dir(&args[1]);
-    println!("{}", songs.len());
+    // println!("{}", songs.len());
     for song in songs {
         let already_there = match db.check_change(&song.title, &song.album, true, false) {
             Some(v) => v,
             None => false
         };
-        println!("exists in db? {}", already_there);
+        // println!("exists in db? {}", already_there);
         if !already_there {
             let _ = db.add(&song);
         }
@@ -45,7 +45,7 @@ fn main() {
     // look through database and remove any songs that don't exist in fs
     match db.prune_db() {
         Ok(_) => (),
-        Err(e) => println!("{}",e),
+        Err(e) => {} //println!("{}",e),
     }; 
 
     let mut app = app::create(db);

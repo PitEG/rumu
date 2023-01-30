@@ -251,7 +251,7 @@ impl App {
                 let right_bottom_chunk = right_chunk[1];
                 let bottom_chunk = main_chunk[1];
                 let block = Block::default()
-                    .title("Block")
+                    .title("block")
                     .borders(Borders::ALL);
 
                 let list = song_list_to_tui_list(&songlist.items, panel == SelectedPanel::SongList);
@@ -262,11 +262,8 @@ impl App {
                 f.render_stateful_widget(list, center_chunk, &mut songlist_state);
                 // f.render_widget(block.clone(), center_top_chunk);
                 f.render_stateful_widget(nav_to_tui_list(&navigator, panel == SelectedPanel::Nav), left_chunk, &mut navigator_state);
-                let current_song_title = match songqueue.get_currently_playing_song() {
-                    Some(s) => String::from(s.title),
-                    None => String::from("no song atm"),
-                };
-                draw_song_detail(f, bottom_chunk, &self.player, &current_song_title[..]);
+                let current_song = songqueue.get_currently_playing_song();
+                draw_song_detail(f, bottom_chunk, &self.player, &current_song);
                 draw_search(f, center_top_chunk, &searchbar.query[..], panel == SelectedPanel::Search);
             })?;
 
@@ -292,7 +289,7 @@ fn song_list_to_tui_list(song_list : &Vec<Song>, selected: bool) -> List {
     let item_list : Vec<ListItem> = song_list.iter().map(|x| ListItem::new(x.to_string())).collect();
     let color = if selected { Color::Yellow } else { Color::White };
     let list = List::new(item_list)
-        .block(Block::default().title("list of stuf").borders(Borders::ALL).border_style(Style::default().fg(color)))
+        .block(Block::default().title("songs").borders(Borders::ALL).border_style(Style::default().fg(color)))
         .style(Style::default().fg(Color::White))
         .highlight_symbol(">>");
     return list;
@@ -310,7 +307,7 @@ fn nav_to_tui_list(nav: &navigator::Navigator, selected: bool) -> List {
     // item_list.push(ListItem::new("something"));
     let color = if selected { Color::Yellow } else { Color::White };
     let list = List::new(item_list)
-        .block(Block::default().title("list of stuf").borders(Borders::ALL).border_style(Style::default().fg(color)))
+        .block(Block::default().title("nav").borders(Borders::ALL).border_style(Style::default().fg(color)))
         .style(Style::default().fg(Color::White))
         .highlight_symbol(">>");
     return list;
@@ -327,7 +324,7 @@ fn queue_to_tui_list(q : &songqueue::SongQueue, selected: bool) -> List {
     }
     let color = if selected { Color::Yellow } else { Color::White };
     let list = List::new(item_list)
-        .block(Block::default().title("list of stuf").borders(Borders::ALL).border_style(Style::default().fg(color)))
+        .block(Block::default().title("song queue").borders(Borders::ALL).border_style(Style::default().fg(color)))
         .style(Style::default().fg(Color::White))
         .highlight_symbol(">>");
     return list;
@@ -352,26 +349,45 @@ fn draw_song_detail(
     f : &mut Frame<CrosstermBackend<std::io::Stdout>>, 
     rect : Rect,
     player : &player::Player,
-    song_name : &str) {
+    song: &Option<Song>) {
     // render container
-    f.render_widget(Block::default().borders(Borders::ALL).title("song info"),rect);
+    f.render_widget(Block::default().borders(Borders::ALL).title("song details"),rect);
 
     // split container
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(1)
         .constraints([
-                     Constraint::Min(3),
+                     Constraint::Min(1),
+                     Constraint::Min(1),
+                     Constraint::Min(1),
+                     Constraint::Min(1),
                      Constraint::Percentage(100)
         ].as_ref())
         .split(rect);
 
     // render song info
+    let song_name : &str = match song {
+        Some(s) => &s.title[..],
+        None => "no song atm",
+    };
     let song_name_paragraph = Paragraph::new(Text::from(song_name));
     f.render_widget(song_name_paragraph, chunks[0]);
+    let song_album : &str = match song {
+        Some(s) => &s.album[..],
+        None => "",
+    };
+    let song_album_paragraph = Paragraph::new(Text::from(song_album));
+    f.render_widget(song_album_paragraph, chunks[1]);
+    let song_artist : &str = match song {
+        Some(s) => &s.artist[..],
+        None => "",
+    };
+    let song_artist_paragraph = Paragraph::new(Text::from(song_artist));
+    f.render_widget(song_artist_paragraph, chunks[2]);
 
     // render song progress
-    f.render_widget(song_detail(player), chunks[1]);
+    f.render_widget(song_detail(player), chunks[4]);
 }
 
 fn draw_search(
